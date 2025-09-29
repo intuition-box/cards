@@ -28,10 +28,11 @@ body{
   backdrop-filter: blur(8px); z-index:10;
 }
 .controls{
-  display:flex; align-items:center; gap:16px;
+  display:flex; flex-direction:column; gap:8px; margin-top:8px;
+  padding-top:8px; border-top:1px solid rgba(255,255,255,.08);
 }
 .control-row{
-  display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500;
+  display:flex; align-items:center; justify-content:space-between; gap:8px; font-size:12px;
 }
 .control-row select, .control-row input[type="range"]{
   padding:6px 8px; border:1px solid rgba(255,255,255,.20); border-radius:8px;
@@ -220,6 +221,9 @@ body{
 
 /* Zones de dépôt en bas */
 .drop-zones{ display:grid; grid-template-columns: repeat(3, 1fr); gap:8px; }
+.drop-panel{ max-width:400px; }
+
+/* Mobile: le panneau reste dans la sidebar (ordre visuel conservé) */
 .drop-zone{
   border:1px dashed rgba(255,255,255,.45);
   border-radius:10px; padding:14px; text-align:center; opacity:.95;

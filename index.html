@@ -13,22 +13,6 @@
       <h1>TRUST CARD TEST</h1>
     </div>
 
-    <div class="controls">
-      <label class="control-row">
-        <span>Blend</span>
-        <select id="blend">
-          <option>overlay</option>
-          <option>soft-light</option>
-          <option selected>screen</option>
-          <option>multiply</option>
-          <option>normal</option>
-        </select>
-      </label>
-      <label class="control-row">
-        <span>Force</span>
-        <input id="force" type="range" min="6" max="32" value="32" />
-      </label>
-    </div>
 
     <details class="importer" id="importer">
       <summary class="btn">Importer…</summary>
@@ -89,8 +73,34 @@
           <label class="switch"><input id="showFrame" type="checkbox" checked /><span>Afficher Frame</span></label>
           <label class="switch"><input id="showAvatar" type="checkbox" checked /><span>Afficher Avatar</span></label>
           <label class="switch"><input id="showInfo" type="checkbox" checked /><span>Afficher Panneau Infos</span></label>
+          
+          <div class="controls">
+            <label class="control-row">
+              <span>Blend</span>
+              <select id="blend">
+                <option>overlay</option>
+                <option>soft-light</option>
+                <option selected>screen</option>
+                <option>multiply</option>
+                <option>normal</option>
+              </select>
+            </label>
+            <label class="control-row">
+              <span>Force</span>
+              <input id="force" type="range" min="6" max="32" value="32" />
+            </label>
+          </div>
         </div>
       </details>
+
+      <div class="panel drop-panel">
+        <h2>Déposer ici</h2>
+        <div class="drop-zones">
+          <div class="drop-zone" data-target="bgImg">Background</div>
+          <div class="drop-zone" data-target="faceImg">Face</div>
+          <div class="drop-zone" data-target="wmImg">Filigrane</div>
+        </div>
+      </div>
 
       <div class="panel">
         <h2>Images</h2>
@@ -111,17 +121,9 @@
       </div>
 
       <div class="panel">
-        <h2>Glissez ici</h2>
-        <div class="drop-zones">
-          <div class="drop-zone" data-target="bgImg">Background</div>
-          <div class="drop-zone" data-target="faceImg">Face</div>
-          <div class="drop-zone" data-target="wmImg">Filigrane</div>
-        </div>
-      </div>
-
-      <div class="panel">
         <h2>Frame</h2>
         <div class="thumbs" data-target="frameImg">
+          <div class="thumb thumb-empty" data-empty title="Vide">Vide</div>
           <img src="./assets/frames/frame1.png" class="thumb selected" alt="frame1" />
           <img src="./assets/frames/frame2.png" class="thumb" alt="frame2" />
         </div>

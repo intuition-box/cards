@@ -80,10 +80,18 @@ document.querySelectorAll(".thumbs").forEach(group => {
   if (targetEl instanceof HTMLImageElement) {
     group.addEventListener("click", (ev) => {
       const t = ev.target;
-      if (!(t instanceof HTMLImageElement)) return;
-      targetEl.src = t.src;
+      const isEmptyThumb = (t instanceof HTMLElement) && (t.hasAttribute('data-empty') || t.classList.contains('thumb-empty'));
+      if (isEmptyThumb) {
+        targetEl.src = EMPTY_DATA_URL;
+        targetEl.classList.add('is-empty');
+      } else if (t instanceof HTMLImageElement) {
+        targetEl.src = t.src;
+        targetEl.classList.remove('is-empty');
+      } else {
+        return;
+      }
       group.querySelectorAll(".thumb").forEach(img => img.classList.remove("selected"));
-      t.classList.add("selected");
+      if (t instanceof HTMLElement) t.classList.add("selected");
     });
   }
   group.querySelectorAll(".thumb").forEach(img => {
