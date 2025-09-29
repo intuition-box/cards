@@ -108,6 +108,62 @@ document.querySelectorAll(".thumbs").forEach(group => {
       }
       e.dataTransfer.effectAllowed = "copyLink";
     });
+    
+    // Support tactile pour mobile
+    let touchStartX, touchStartY, isDragging = false;
+    img.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      isDragging = false;
+    }, { passive: true });
+    
+    img.addEventListener("touchmove", (e) => {
+      if (!touchStartX || !touchStartY) return;
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartX);
+      const deltaY = Math.abs(touch.clientY - touchStartY);
+      if (deltaX > 10 || deltaY > 10) {
+        isDragging = true;
+        // Créer un élément fantôme pour le drag
+        const ghost = img.cloneNode(true);
+        ghost.style.position = 'absolute';
+        ghost.style.top = '-1000px';
+        ghost.style.left = '-1000px';
+        ghost.style.opacity = '0.5';
+        ghost.style.pointerEvents = 'none';
+        document.body.appendChild(ghost);
+        
+        // Simuler un dragstart
+        const dragEvent = new DragEvent('dragstart', {
+          dataTransfer: new DataTransfer(),
+          bubbles: true
+        });
+        const isEmpty = img.hasAttribute('data-empty');
+        if (isEmpty) {
+          dragEvent.dataTransfer.setData('application/x-clear-image', '1');
+          dragEvent.dataTransfer.setData('text/plain', 'clear');
+        } else {
+          dragEvent.dataTransfer.setData("text/uri-list", img.src);
+          dragEvent.dataTransfer.setData("text/plain", img.src);
+        }
+        dragEvent.dataTransfer.effectAllowed = "copyLink";
+        img.dispatchEvent(dragEvent);
+        
+        // Nettoyer le fantôme après un délai
+        setTimeout(() => document.body.removeChild(ghost), 100);
+      }
+    }, { passive: true });
+    
+    img.addEventListener("touchend", (e) => {
+      if (!isDragging) {
+        // Si pas de drag, traiter comme un clic
+        const clickEvent = new MouseEvent('click', { bubbles: true });
+        img.dispatchEvent(clickEvent);
+      }
+      touchStartX = touchStartY = null;
+      isDragging = false;
+    }, { passive: true });
   });
 });
 
