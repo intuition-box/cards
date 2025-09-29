@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>TrustCard Test</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <meta name="color-scheme" content="dark light" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="left">
+      <h1>TRUST CARD TEST</h1>
+    </div>
+
+    <div class="controls">
+      <label class="control-row">
+        <span>Blend</span>
+        <select id="blend">
+          <option>overlay</option>
+          <option>soft-light</option>
+          <option selected>screen</option>
+          <option>multiply</option>
+          <option>normal</option>
+        </select>
+      </label>
+      <label class="control-row">
+        <span>Force</span>
+        <input id="force" type="range" min="6" max="32" value="32" />
+      </label>
+    </div>
+
+    <details class="importer" id="importer">
+      <summary class="btn">Importer…</summary>
+      <div class="import-grid">
+        <label class="btn file-btn">Background
+          <input id="bgInput" type="file" accept="image/*" hidden />
+        </label>
+        <label class="btn file-btn">Face
+          <input id="faceInput" type="file" accept="image/*" hidden />
+        </label>
+        <label class="btn file-btn">Filigrane
+          <input id="wmInput" type="file" accept="image/*" hidden />
+        </label>
+        <label class="btn file-btn">Frame
+          <input id="frameInput" type="file" accept="image/*" hidden />
+        </label>
+        <label class="btn file-btn">Avatar
+          <input id="avatarInput" type="file" accept="image/*" hidden />
+        </label>
+      </div>
+    </details>
+  </header>
+
+  <main class="layout">
+    <section class="stage">
+      <div class="card" id="card" data-tilt>
+        <img id="bgImg"    class="bg-img"    src="./assets/images/img1.jpg"  alt="background" />
+        <img id="faceImg"  class="card-img is-empty"  src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg=="      alt="face" />
+        <img id="wmImg"    class="wm-img"    src="./assets/images/img6.png"   alt="filigrane" />
+        <div class="glare" aria-hidden="true"></div>
+        <img id="frameImg" class="frame-img" src="./assets/frames/frame1.png"    alt="frame" />
+        <div class="liquid-frame">
+          <div class="avatar-panel" id="avatarPanel">
+            <div class="avatar-ring"></div>
+            <img id="avatarImg" src="./assets/avatars/avatar.jpg" alt="avatar" />
+          </div>
+          <div class="info-panel" id="infoPanel">
+            <div class="info-grid">
+              <div class="info-cell"><span class="k">Level</span><span class="v" id="info-level">42</span></div>
+              <div class="info-cell"><span class="k">XP</span><span class="v" id="info-xp">12 340</span></div>
+              <div class="info-cell"><span class="k">Trust</span><span class="v" id="info-trust">1 337</span></div>
+              <div class="info-cell"><span class="k">Faction</span><span class="v" id="info-faction">Scholar</span></div>
+              <div class="info-cell"><span class="k">Rarity</span><span class="v" id="info-rarity">Legendary</span></div>
+              <div class="info-cell"><span class="k">$TRUST</span><span class="v" id="info-token">9 950</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="sidebar">
+      <details class="panel fold">
+        <summary><h2>Visibilité</h2></summary>
+        <div class="fold-body">
+          <label class="switch"><input id="showBg" type="checkbox" checked /><span>Afficher Background</span></label>
+          <label class="switch"><input id="showFace" type="checkbox" checked /><span>Afficher Face</span></label>
+          <label class="switch"><input id="showWm" type="checkbox" checked /><span>Afficher Filigrane</span></label>
+          <label class="switch"><input id="showFrame" type="checkbox" checked /><span>Afficher Frame</span></label>
+          <label class="switch"><input id="showAvatar" type="checkbox" checked /><span>Afficher Avatar</span></label>
+          <label class="switch"><input id="showInfo" type="checkbox" checked /><span>Afficher Panneau Infos</span></label>
+        </div>
+      </details>
+
+      <div class="panel">
+        <h2>Images</h2>
+        <div class="thumbs">
+          <div class="thumb thumb-empty" data-empty title="Vide">Vide</div>
+          <img src="./assets/images/img1.jpg" class="thumb" alt="img1" />
+          <img src="./assets/images/img2.jpg" class="thumb" alt="img2" />
+          <img src="./assets/images/img3.jpg" class="thumb" alt="img3" />
+          <img src="./assets/images/img4.png" class="thumb" alt="img4" />
+          <img src="./assets/images/img5.png" class="thumb" alt="img5" />
+          <img src="./assets/images/img6.png" class="thumb" alt="img6" />
+          <img src="./assets/images/img7.png" class="thumb" alt="img7" />
+          <img src="./assets/images/img8.png" class="thumb" alt="img8" />
+          <img src="./assets/images/img9.png" class="thumb" alt="img9" />
+          <img src="./assets/images/img10.png" class="thumb" alt="img10" />
+
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Glissez ici</h2>
+        <div class="drop-zones">
+          <div class="drop-zone" data-target="bgImg">Background</div>
+          <div class="drop-zone" data-target="faceImg">Face</div>
+          <div class="drop-zone" data-target="wmImg">Filigrane</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Frame</h2>
+        <div class="thumbs" data-target="frameImg">
+          <img src="./assets/frames/frame1.png" class="thumb selected" alt="frame1" />
+          <img src="./assets/frames/frame2.png" class="thumb" alt="frame2" />
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <noscript>Activez JavaScript pour voir les effets.</noscript>
+  <script src="./app.js"></script>
+</body>
+</html>
