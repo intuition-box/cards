@@ -1,43 +1,53 @@
 const EMPTY_DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==';
+const THEMES = ["erudit", "abeille", "sphere", "relic"];
+const BG_INDEXES = ["1", "2", "3", "4", "5"];
+const RARITIES = ["common", "rare", "epic", "legendary", "ancient", "mystic"];
+const STORAGE_KEY = 'trustcard_favorites';
+const TRANSFORM_STORAGE_KEY = 'trustcard_transforms';
 
-const THEMES = ["erudit","abeille","sphere","relic"];
-const BG_INDEXES = ["1","2","3","4","5"];
-const RARITIES = ["common","rare","epic","legendary","ancient","mystic"];
-const card      = document.getElementById("card");
-const bgImg     = document.getElementById("bgImg");
-const faceImg   = document.getElementById("faceImg");
-const wmImg     = document.getElementById("wmImg");
-const wmImg2    = null;
-const frameImg  = document.getElementById("frameImg");
-const glare     = document.querySelector(".glare");
+// DOM Elements - Card
+const card = document.getElementById("card");
+const bgImg = document.getElementById("bgImg");
+const faceImg = document.getElementById("faceImg");
+const wmImg = document.getElementById("wmImg");
+const frameImg = document.getElementById("frameImg");
+const glare = document.querySelector(".glare");
 const avatarImg = document.getElementById("avatarImg");
 const avatarPanel = document.getElementById("avatarPanel");
-const infoPanel   = document.getElementById("infoPanel");
-const infoGrid    = document.getElementById("infoGrid");
+const infoPanel = document.getElementById("infoPanel");
+const infoGrid = document.getElementById("infoGrid");
 
-const bgInput     = document.getElementById("bgInput");
-const faceInput   = document.getElementById("faceInput");
-const wmInput     = document.getElementById("wmInput");
-const frameInput  = document.getElementById("frameInput");
+// DOM Elements - Inputs
+const bgInput = document.getElementById("bgInput");
+const faceInput = document.getElementById("faceInput");
+const wmInput = document.getElementById("wmInput");
+const frameInput = document.getElementById("frameInput");
 const avatarInput = document.getElementById("avatarInput");
-
 const blendSelect = document.getElementById("blend");
-const forceInput  = document.getElementById("force");
+const forceInput = document.getElementById("force");
 
-function getShowToggleFor(target){
+// State
+let wmOverlayImg = null;
+let damp = forceInput ? +forceInput.value : 16;
+const urls = [];
+
+// Utility Functions
+function getShowToggleFor(target) {
   return document.querySelector(`.show-toggle[data-target="${target}"]`);
 }
-function isTargetShown(target){
+
+function isTargetShown(target) {
   const cb = getShowToggleFor(target);
   return cb ? !!cb.checked : true;
 }
 
-let damp = forceInput ? +forceInput.value : 16;
-const urls = [];
-
 function setBlend(mode) {
   if (!wmImg) return;
   wmImg.style.mixBlendMode = mode;
+}
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function tiltFromEvent(e) {
@@ -51,7 +61,9 @@ function tiltFromEvent(e) {
 
   const mag = Math.min(1, Math.hypot(rx, ry) / (damp * 0.9));
   if (isTargetShown('wm')) {
-    wmImg.style.opacity = (0.08 + mag * 0.75).toFixed(3);
+    const op = (0.08 + mag * 0.75).toFixed(3);
+    wmImg.style.opacity = op;
+    if (wmOverlayImg) wmOverlayImg.style.opacity = op;
     
   }
 
@@ -60,6 +72,11 @@ function tiltFromEvent(e) {
   const wmScale = transformState.wm.scale || 1;
   const wmOffsetY = transformState.wm.y || 0;
   wmImg.style.transform = `translate3d(${px}px, ${py + wmOffsetY}px, 0) scale(${wmScale * 1.03})`;
+
+  const pointerX = `${(cx / rect.width) * 100}%`;
+  const pointerY = `${(cy / rect.height) * 100}%`;
+  const bgX = `${((cx / rect.width) * 200 - 50).toFixed(2)}%`;
+  const bgY = `${((cy / rect.height) * 200 - 50).toFixed(2)}%`;
   
 
   const angle = Math.atan2(cy - rect.height/2, cx - rect.width/2) * 180/Math.PI + 180;
@@ -75,12 +92,33 @@ function tiltLeave() {
   const wmScale = transformState.wm.scale || 1;
   const wmOffsetY = transformState.wm.y || 0;
   wmImg.style.transform = `translate3d(0,${wmOffsetY}px,0) scale(${wmScale * 1.02})`;
+  if (wmOverlayImg){
+    wmOverlayImg.style.setProperty('--background-x', '50%');
+    wmOverlayImg.style.setProperty('--background-y', '50%');
+    wmOverlayImg.style.setProperty('--pointer-x', '50%');
+    wmOverlayImg.style.setProperty('--pointer-y', '50%');
+  }
   glare.style.opacity = "0";
 }
 
-card.addEventListener("mousemove", tiltFromEvent);
+let rafPending = false, lastPointer = null;
+function scheduleTilt(e){
+  const rect = card.getBoundingClientRect();
+  const cx = (e.clientX ?? e.touches?.[0]?.clientX) - rect.left;
+  const cy = (e.clientY ?? e.touches?.[0]?.clientY) - rect.top;
+  lastPointer = { cx, cy };
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(()=>{
+    rafPending = false;
+    if (lastPointer) {
+      tiltFromEvent({ clientX: lastPointer.cx + rect.left, clientY: lastPointer.cy + rect.top });
+    }
+  });
+}
+card.addEventListener("mousemove", scheduleTilt);
 card.addEventListener("mouseleave", tiltLeave);
-card.addEventListener("touchmove", tiltFromEvent, { passive: true });
+card.addEventListener("touchmove", scheduleTilt, { passive: true });
 card.addEventListener("touchend", tiltLeave);
 
 if (blendSelect) blendSelect.addEventListener("change", (e) => setBlend(e.target.value));
@@ -108,13 +146,19 @@ function makeThumbDraggable(el){
   });
 }
 
-document.querySelectorAll(".thumbs").forEach(group => {
-  const targetId = group.dataset.target;
-  const targetEl = targetId ? document.getElementById(targetId) : null;
-  if (targetEl instanceof HTMLImageElement) {
-  group.addEventListener("click", (ev) => {
+// Handle clicks on thumbnails in the main container
+const allThumbsContainer = document.getElementById('allThumbs');
+if (allThumbsContainer) {
+  allThumbsContainer.addEventListener("click", (ev) => {
     const t = ev.target;
-      const isEmptyThumb = (t instanceof HTMLElement) && (t.hasAttribute('data-empty') || t.classList.contains('thumb-empty'));
+    if (!(t instanceof HTMLElement)) return;
+    
+    const isEmptyThumb = t.hasAttribute('data-empty') || t.classList.contains('thumb-empty');
+    const targetId = t.dataset.target;
+    const targetEl = targetId ? document.getElementById(targetId) : null;
+    
+    if (!(targetEl instanceof HTMLImageElement)) return;
+    
       if (isEmptyThumb) {
         targetEl.src = EMPTY_DATA_URL;
         targetEl.classList.add('is-empty');
@@ -122,183 +166,493 @@ document.querySelectorAll(".thumbs").forEach(group => {
     targetEl.src = t.src;
         targetEl.classList.remove('is-empty');
         syncComposerFromImageSrc(targetEl, t.src);
+        if (targetId === 'faceImg') {
+          checkAndUpdateEruditToggle();
+        }
       } else {
         return;
       }
-    group.querySelectorAll(".thumb").forEach(img => img.classList.remove("selected"));
-      if (t instanceof HTMLElement) t.classList.add("selected");
-    });
-  }
-  group.querySelectorAll(".thumb").forEach(img => {
-    img.setAttribute("draggable", "true");
-    img.addEventListener("dragstart", (e) => {
-      if (!e.dataTransfer) return;
-      const isEmpty = img.hasAttribute('data-empty');
-      if (isEmpty) {
-        e.dataTransfer.setData('application/x-clear-image', '1');
-        e.dataTransfer.setData('text/plain', 'clear');
-      } else {
-        e.dataTransfer.setData("text/uri-list", img.src);
-        e.dataTransfer.setData("text/plain", img.src);
-      }
-      e.dataTransfer.effectAllowed = "copyLink";
-    });
     
-    let touchStartX, touchStartY, isDragging = false;
-    img.addEventListener("touchstart", (e) => {
-      const touch = e.touches[0];
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-      isDragging = false;
-    }, { passive: true });
-    
-    img.addEventListener("touchmove", (e) => {
-      if (!touchStartX || !touchStartY) return;
-      const touch = e.touches[0];
-      const deltaX = Math.abs(touch.clientX - touchStartX);
-      const deltaY = Math.abs(touch.clientY - touchStartY);
-      if (deltaX > 10 || deltaY > 10) {
-        isDragging = true;
-        const ghost = img.cloneNode(true);
-        ghost.style.position = 'absolute';
-        ghost.style.top = '-1000px';
-        ghost.style.left = '-1000px';
-        ghost.style.opacity = '0.5';
-        ghost.style.pointerEvents = 'none';
-        document.body.appendChild(ghost);
-        
-        const dragEvent = new DragEvent('dragstart', {
-          dataTransfer: new DataTransfer(),
-          bubbles: true
-        });
-        const isEmpty = img.hasAttribute('data-empty');
-        if (isEmpty) {
-          dragEvent.dataTransfer.setData('application/x-clear-image', '1');
-          dragEvent.dataTransfer.setData('text/plain', 'clear');
-        } else {
-          dragEvent.dataTransfer.setData("text/uri-list", img.src);
-          dragEvent.dataTransfer.setData("text/plain", img.src);
-        }
-        dragEvent.dataTransfer.effectAllowed = "copyLink";
-        img.dispatchEvent(dragEvent);
-        
-        setTimeout(() => document.body.removeChild(ghost), 100);
-      }
-    }, { passive: true });
-    
-    img.addEventListener("touchend", (e) => {
-      if (!isDragging) {
-        const clickEvent = new MouseEvent('click', { bubbles: true });
-        img.dispatchEvent(clickEvent);
-      }
-      touchStartX = touchStartY = null;
-      isDragging = false;
-    }, { passive: true });
-  });
-});
-
-function appendCatalogThumbs(){
-  const container = document.getElementById('imagesThumbs');
-  if (!container) return;
-  const rarities = ['common','rare','epic','legendary','ancient','mystic'];
-  const themes = ['erudit','abeille','sphere','relic'];
-  const paths = [];
-  rarities.forEach(r => { for (let i=1;i<=5;i++){ paths.push(
-    `./assets/catalog/background/${r}/${i}.png`,
-    `./assets/catalog/background/${r}/${i}.svg`,
-    `./assets/catalog/background/${r}/${r}${i}.png`,
-    `./assets/catalog/background/${r}/${r}${i}.svg`,
-  ); }});
-  themes.forEach(t => rarities.forEach(r => {
-    paths.push(
-      `./assets/catalog/frame/${t}/${r}.png`, `./assets/catalog/frame/${t}/${r}.svg`,
-      `./assets/catalog/face/${t}/${r}.png`,  `./assets/catalog/face/${t}/${r}.svg`,
-      `./assets/catalog/watermark/${t}/${r}.png`, `./assets/catalog/watermark/${t}/${r}.svg`,
-    );
-  }));
-  paths.forEach(src => {
-    const img = new Image();
-    img.onload = () => {
-      const el = document.createElement('img');
-      el.src = src; el.className = 'thumb'; el.alt = src.split('/').pop();
-      container.appendChild(el);
-      makeThumbDraggable(el);
-    };
-    img.onerror = () => {};
-    img.src = src;
+    allThumbsContainer.querySelectorAll(".thumb").forEach(img => img.classList.remove("selected"));
+    t.classList.add("selected");
   });
 }
 
-window.addEventListener('load', appendCatalogThumbs);
-const thumbsHandle = document.getElementById('thumbsHandle');
-const thumbsFlyout = document.getElementById('thumbsFlyout');
-thumbsHandle?.addEventListener('click', () => {
-  const isClosed = thumbsFlyout?.classList.toggle('closed');
-  const expanded = !isClosed;
-  thumbsHandle.setAttribute('aria-expanded', String(expanded));
-  thumbsFlyout?.setAttribute('aria-hidden', String(!expanded));
+function appendCatalogThumbs(){
+  const rarities = ['common','rare','epic','legendary','ancient','mystic'];
+  const themes = ['erudit','abeille','sphere'];
+  const bgIndexes = ['1','2','3','4'];
+  const container = document.getElementById('allThumbs');
+  
+  if (!container) return;
+  
+  rarities.forEach(r => {
+    bgIndexes.forEach(idx => {
+      const src = `./assets/catalog/background/${r}/${r}${idx}.svg`;
+      const el = document.createElement('img');
+      el.loading = 'lazy';
+      el.decoding = 'async';
+      el.src = src;
+      el.className = 'thumb';
+      el.dataset.category = 'background';
+      el.dataset.rarity = r;
+      el.dataset.target = 'bgImg';
+      el.alt = `bg-${r}-${idx}`;
+      container.appendChild(el);
+      makeThumbDraggable(el);
+    });
+  });
+  
+  const mysticSources = ['./assets/catalog/background/mystic/mystic1.jpg', './assets/catalog/background/mystic/mystic4.svg'];
+  mysticSources.forEach((src, i) => {
+    const el = document.createElement('img');
+    el.loading = 'lazy';
+    el.decoding = 'async';
+    el.src = src;
+    el.className = 'thumb';
+    el.dataset.category = 'background';
+    el.dataset.rarity = 'mystic';
+    el.dataset.target = 'bgImg';
+    el.alt = `bg-mystic-${i+1}`;
+    container.appendChild(el);
+    makeThumbDraggable(el);
+  });
+  
+  themes.forEach(t => rarities.forEach(r => {
+    const srcSvg = `./assets/catalog/watermark/${t}/${r}.svg`;
+    const el = document.createElement('img');
+    el.loading = 'lazy';
+    el.decoding = 'async';
+    el.src = srcSvg;
+    el.className = 'thumb';
+    el.dataset.category = 'watermark';
+    el.dataset.rarity = r;
+    el.dataset.target = 'wmImg';
+    el.alt = `wm-${t}-${r}`;
+    container.appendChild(el);
+    makeThumbDraggable(el);
+  }));
+  
+  themes.forEach(t => rarities.filter(r => r !== 'mystic').forEach(r => {
+    const srcSvg = `./assets/catalog/face/${t}/${r}.svg`;
+    const el = document.createElement('img');
+    el.loading = 'lazy';
+    el.decoding = 'async';
+    el.src = srcSvg;
+    el.className = 'thumb';
+    el.dataset.category = 'face';
+    el.dataset.rarity = r;
+    el.dataset.target = 'faceImg';
+    el.alt = `face-${t}-${r}`;
+    container.appendChild(el);
+    makeThumbDraggable(el);
+  }));
+  
+  themes.forEach(t => rarities.forEach(r => {
+    const srcSvg = `./assets/catalog/frame/${t}/${r}.svg`;
+    const el = document.createElement('img');
+    el.loading = 'lazy';
+    el.decoding = 'async';
+    el.src = srcSvg;
+    el.className = 'thumb';
+    el.dataset.category = 'frame';
+    el.dataset.rarity = r;
+    el.dataset.target = 'frameImg';
+    el.alt = `frame-${t}-${r}`;
+    container.appendChild(el);
+    makeThumbDraggable(el);
+  }));
+}
+
+function initializeFilters() {
+  const filterBtns = document.querySelectorAll('.filter-btn');
+  const rarityBtns = document.querySelectorAll('.rarity-btn');
+  console.log('Found filter buttons:', filterBtns.length);
+  console.log('Found rarity buttons:', rarityBtns.length);
+  
+  filterBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      console.log('Filter clicked:', btn.dataset.filter);
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      applyFilter(filter);
+    });
+  });
+  
+  rarityBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      console.log('Rarity clicked:', btn.dataset.rarity);
+      document.querySelectorAll('.rarity-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const rarity = btn.dataset.rarity;
+      applyRarityFilter(rarity);
+    });
+  });
+  
+  applyFilter('all');
+  applyRarityFilter('all');
+}
+
+// Initialize everything when page loads
+window.addEventListener('load', () => {
+  console.log('Page loaded, initializing...');
+  
+  // Load thumbnails first
+  appendCatalogThumbs();
+  
+        setTimeout(() => {
+          initializeFilters();
+          initializeSaveButton();
+          initializePresets();
+          applyPreset('scholar');
+          renderFavorites();
+          updateThumbUsageMarkers();
+          console.log('All systems initialized');
+        }, 100);
 });
-document.getElementById('closeThumbs')?.addEventListener('click', () => {
-  thumbsFlyout?.classList.add('closed');
-  thumbsHandle?.setAttribute('aria-expanded', 'false');
-  thumbsFlyout?.setAttribute('aria-hidden', 'true');
+const leftRailContent = document.getElementById('leftRailContent');
+const closeLeftRail = document.getElementById('closeLeftRail');
+const dropsRail = document.querySelector('.drops-rail');
+
+function updateButtonText() {
+  const isClosed = leftRailContent?.classList.contains('closed');
+  if (closeLeftRail) {
+    closeLeftRail.textContent = isClosed ? 'Open' : 'Close';
+  }
+}
+
+closeLeftRail?.addEventListener('click', () => {
+  const isClosed = leftRailContent?.classList.toggle('closed');
+  leftRailContent?.setAttribute('aria-hidden', String(isClosed));
+  
+  if (dropsRail) {
+    if (isClosed) {
+      dropsRail.style.display = 'none';
+    } else {
+      dropsRail.style.display = 'block';
+    }
+  }
+  
+  updateButtonText();
 });
 
+updateButtonText();
+
+// Transform System
 const transformTargetSel = document.getElementById('transformTarget');
 const transformScale = document.getElementById('transformScale');
+const transformOffsetX = document.getElementById('transformOffsetX');
 const transformOffsetY = document.getElementById('transformOffsetY');
+const transformOpacity = document.getElementById('transformOpacity');
+const transformBrightness = document.getElementById('transformBrightness');
 const transformReset = document.getElementById('transformReset');
 
+const eruditToggleRow = document.getElementById('eruditToggleRow');
+const eruditStyleToggle = document.getElementById('eruditStyleToggle');
+
+const transformScaleValue = document.getElementById('transformScaleValue');
+const transformOffsetXValue = document.getElementById('transformOffsetXValue');
+const transformOffsetYValue = document.getElementById('transformOffsetYValue');
+const transformOpacityValue = document.getElementById('transformOpacityValue');
+const transformBrightnessValue = document.getElementById('transformBrightnessValue');
+
 const transformState = {
-  bg:   { scale: 1, y: 0 },
-  face: { scale: 1, y: 0 },
-  wm:   { scale: 1, y: 0 },
-  frame:{ scale: 1, y: 0 },
+  bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+  face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+  wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+  frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
 };
 
-function applyTransformState(){
-  bgImg.style.transform    = `scale(${transformState.bg.scale})`;
-  faceImg.style.transform  = `scale(${transformState.face.scale})`;
-  frameImg.style.transform = `scale(${transformState.frame.scale})`;
-  wmImg.style.transform    = `translate3d(0,${transformState.wm.y}px,0) scale(${(transformState.wm.scale).toFixed(3)})`;
+let eruditStyleApplied = false;
+
+function applyTransformState() {
+  // Apply transforms
+  bgImg.style.transform = `scale(${transformState.bg.scale}) translate(${transformState.bg.x}px, ${transformState.bg.y}px)`;
+  faceImg.style.transform = `scale(${transformState.face.scale}) translate(${transformState.face.x}px, ${transformState.face.y}px)`;
+  frameImg.style.transform = `scale(${transformState.frame.scale}) translate(${transformState.frame.x}px, ${transformState.frame.y}px)`;
+  wmImg.style.transform = `translate3d(${transformState.wm.x}px,${transformState.wm.y}px,0) scale(${transformState.wm.scale.toFixed(3)})`;
+  
+  // Apply watermark properties
   wmImg.style.setProperty('--wm-scale', transformState.wm.scale);
   wmImg.style.setProperty('--wm-offset-y', `${transformState.wm.y}px`);
+  
+  // Apply opacity and brightness
+  bgImg.style.opacity = transformState.bg.opacity;
+  bgImg.style.filter = `brightness(${transformState.bg.brightness})`;
+  
+  faceImg.style.opacity = transformState.face.opacity;
+  faceImg.style.filter = `brightness(${transformState.face.brightness})`;
+  
+  frameImg.style.opacity = transformState.frame.opacity;
+  frameImg.style.filter = `brightness(${transformState.frame.brightness})`;
+  
+  wmImg.style.filter = `brightness(${transformState.wm.brightness})`;
+  
+  if (wmOverlayImg) {
+    wmOverlayImg.style.transform = wmImg.style.transform;
+    wmOverlayImg.style.setProperty('--wm-scale', transformState.wm.scale);
+    wmOverlayImg.style.setProperty('--wm-offset-y', `${transformState.wm.y}px`);
+    wmOverlayImg.style.mixBlendMode = wmImg?.style?.mixBlendMode || 'screen';
+  }
+}
+
+function updateValueDisplays() {
+  if (transformScaleValue) transformScaleValue.textContent = parseFloat(transformScale?.value || 1).toFixed(1);
+  if (transformOffsetXValue) transformOffsetXValue.textContent = parseInt(transformOffsetX?.value || 0);
+  if (transformOffsetYValue) transformOffsetYValue.textContent = parseInt(transformOffsetY?.value || 0);
+  if (transformOpacityValue) transformOpacityValue.textContent = parseFloat(transformOpacity?.value || 1).toFixed(2);
+  if (transformBrightnessValue) transformBrightnessValue.textContent = parseFloat(transformBrightness?.value || 1).toFixed(2);
+}
+
+function resetControlsToDefault() {
+  if (transformScale) transformScale.value = '1';
+  if (transformOffsetX) transformOffsetX.value = '0';
+  if (transformOffsetY) transformOffsetY.value = '0';
+  if (transformOpacity) transformOpacity.value = '1';
+  if (transformBrightness) transformBrightness.value = '1';
+  updateValueDisplays();
+}
+
+function isEruditFace() {
+  return faceImg.src.includes('/face/erudit/');
+}
+
+function showEruditToggle() {
+  if (eruditToggleRow) {
+    eruditToggleRow.style.display = 'flex';
+  }
+}
+
+function hideEruditToggle() {
+  if (eruditToggleRow) {
+    eruditToggleRow.style.display = 'none';
+  }
+}
+
+function applyEruditStyle() {
+  if (!isEruditFace()) return;
+  
+  const isScholarStyle = eruditStyleToggle.checked;
+  
+  if (isScholarStyle) {
+    transformState.face.scale = 1;
+    transformState.face.y = 0;
+  } else {
+    transformState.face.scale = 2;
+    transformState.face.y = 136;
+  }
+  
+  eruditStyleApplied = true;
+  
+  if (wmImg.src.includes('/erudit/')) {
+    transformState.wm.y = 98;
+    transformState.wm.brightness = 1.81;
+  } else if (wmImg.src.includes('/sphere/')) {
+    transformState.wm.y = 0;
+    transformState.wm.brightness = 1;
+  }
+  
+  applyTransformState();
+  updateValueDisplays();
+}
+
+function applyDefaultEruditStyle() {
+  if (!isEruditFace()) return;
+  
+  transformState.face.scale = 2;
+  transformState.face.y = 136;
+  eruditStyleApplied = true;
+  
+  if (eruditStyleToggle) {
+    eruditStyleToggle.checked = false;
+  }
+  
+  if (wmImg.src.includes('/erudit/')) {
+    transformState.wm.y = 98;
+    transformState.wm.brightness = 1.81;
+  }
+  
+  applyTransformState();
+  updateValueDisplays();
+}
+
+function checkAndUpdateEruditToggle() {
+  if (isEruditFace()) {
+    showEruditToggle();
+    
+    if (eruditStyleToggle) {
+      if (eruditStyleApplied) {
+        const isCurrentlyScholarStyle = transformState.face.scale === 1 && transformState.face.y === 0;
+        const isCurrentlyDefaultStyle = transformState.face.scale === 2 && transformState.face.y === 136;
+        
+        if (isCurrentlyScholarStyle) {
+          eruditStyleToggle.checked = true;
+        } else if (isCurrentlyDefaultStyle) {
+          eruditStyleToggle.checked = false;
+        }
+      } else {
+        applyDefaultEruditStyle();
+        return;
+      }
+    }
+  } else {
+    hideEruditToggle();
+    eruditStyleApplied = false;
+    
+    transformState.face.scale = 1;
+    transformState.face.y = 0;
+    applyTransformState();
+  }
 }
 
 transformScale?.addEventListener('input', (e)=>{
   const target = transformTargetSel?.value || 'bg';
   transformState[target].scale = +e.target.value;
   applyTransformState();
+  updateValueDisplays();
+  debounceAutoSave();
 });
+transformOffsetX?.addEventListener('input', (e)=>{
+  const target = transformTargetSel?.value || 'bg';
+  transformState[target].x = +e.target.value;
+  applyTransformState();
+  updateValueDisplays();
+  debounceAutoSave();
+});
+
 transformOffsetY?.addEventListener('input', (e)=>{
   const target = transformTargetSel?.value || 'bg';
   transformState[target].y = +e.target.value;
-  if (target === 'face') faceImg.style.top = `${transformState.face.y}px`;
-  if (target === 'wm') applyTransformState();
-  if (target === 'bg') bgImg.style.top = `${transformState.bg.y}px`;
-  if (target === 'frame') frameImg.style.top = `${transformState.frame.y}px`;
+  applyTransformState();
+  updateValueDisplays();
+  debounceAutoSave();
+});
+
+transformOpacity?.addEventListener('input', (e)=>{
+  const target = transformTargetSel?.value || 'bg';
+  transformState[target].opacity = +e.target.value;
+  applyTransformState();
+  updateValueDisplays();
+  debounceAutoSave();
+});
+
+transformBrightness?.addEventListener('input', (e)=>{
+  const target = transformTargetSel?.value || 'bg';
+  transformState[target].brightness = +e.target.value;
+  applyTransformState();
+  updateValueDisplays();
+  debounceAutoSave();
 });
 transformReset?.addEventListener('click', ()=>{
   const target = transformTargetSel?.value || 'bg';
-  transformState[target] = { scale:1, y:0 };
+  transformState[target] = { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 };
   if (transformScale) transformScale.value = '1';
+  if (transformOffsetX) transformOffsetX.value = '0';
   if (transformOffsetY) transformOffsetY.value = '0';
-  if (target === 'face') faceImg.style.top = '0px';
-  if (target === 'bg') bgImg.style.top = '0px';
-  if (target === 'frame') frameImg.style.top = '0px';
+  if (transformOpacity) transformOpacity.value = '1';
+  if (transformBrightness) transformBrightness.value = '1';
+  updateValueDisplays();
   applyTransformState();
 });
 
-applyTransformState();
+// Erudit toggle event listener
+eruditStyleToggle?.addEventListener('change', applyEruditStyle);
 
-function fileToEl(input, imgEl){
+// Sync controls when target changes
+transformTargetSel?.addEventListener('change', ()=>{
+  const target = transformTargetSel.value || 'bg';
+  const state = transformState[target];
+  
+  if (transformScale) transformScale.value = state.scale;
+  if (transformOffsetX) transformOffsetX.value = state.x;
+  if (transformOffsetY) transformOffsetY.value = state.y;
+  if (transformOpacity) transformOpacity.value = state.opacity;
+  if (transformBrightness) transformBrightness.value = state.brightness;
+  updateValueDisplays();
+});
+
+// Save transform button
+document.getElementById('saveTransform')?.addEventListener('click', () => {
+  const target = transformTargetSel?.value || 'bg';
+  const state = transformState[target];
+  
+  // Get current values from controls
+  const currentState = {
+    scale: parseFloat(transformScale?.value || 1),
+    x: parseFloat(transformOffsetX?.value || 0),
+    y: parseFloat(transformOffsetY?.value || 0),
+    opacity: parseFloat(transformOpacity?.value || 1),
+    brightness: parseFloat(transformBrightness?.value || 1)
+  };
+  
+  // Update transform state
+  transformState[target] = currentState;
+  
+  // Save to localStorage
+  saveTransformToStorage();
+  
+  alert(`Transform values saved for ${target}!`);
+});
+
+// Auto-save debounce
+let autoSaveTimeout = null;
+function debounceAutoSave() {
+  if (autoSaveTimeout) {
+    clearTimeout(autoSaveTimeout);
+  }
+  autoSaveTimeout = setTimeout(() => {
+    saveTransformToStorage();
+  }, 1000); // Save 1 second after last change
+}
+
+// Transform storage functions
+function saveTransformToStorage() {
+  try {
+    localStorage.setItem(TRANSFORM_STORAGE_KEY, JSON.stringify(transformState));
+    console.log('Transform state saved to localStorage');
+  } catch (error) {
+    console.error('Error saving transform state:', error);
+  }
+}
+
+function loadTransformFromStorage() {
+  try {
+    const saved = localStorage.getItem(TRANSFORM_STORAGE_KEY);
+    if (saved) {
+      const savedState = JSON.parse(saved);
+      
+      // Merge with current state (in case new properties were added)
+      Object.keys(savedState).forEach(target => {
+        if (transformState[target]) {
+          transformState[target] = { ...transformState[target], ...savedState[target] };
+        }
+      });
+      
+      // Apply the loaded state
+applyTransformState();
+      
+      
+      console.log('Transform state loaded from localStorage');
+    }
+  } catch (error) {
+    console.error('Error loading transform state:', error);
+  }
+}
+
+applyTransformState();
+updateValueDisplays();
+
+// File Management
+function fileToEl(input, imgEl) {
   const f = input.files?.[0];
   if (!f) return;
   const url = URL.createObjectURL(f);
   urls.push(url);
   imgEl.src = url;
 }
-function fileToTarget(file, imgEl){
+
+function fileToTarget(file, imgEl) {
   if (!file || !file.type?.startsWith("image/")) return;
   const url = URL.createObjectURL(file);
   urls.push(url);
@@ -331,7 +685,35 @@ function setupDropZone(group){
   group.addEventListener("drop",      drop);
 }
 
-document.querySelectorAll('.thumbs[data-target="faceImg"], .thumbs[data-target="wmImg"]').forEach(setupDropZone);
+// Initialize drop zones
+document.querySelectorAll('.drop-zone').forEach(setupDropZone);
+
+document.querySelectorAll('.drop-zone-clear').forEach(clearBtn => {
+  clearBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Prevent triggering drop zone click
+    const dropZone = clearBtn.closest('.drop-zone');
+    const target = dropZone.dataset.target;
+    clearDropZone(target);
+  });
+});
+
+
+function clearDropZone(target) {
+  const imgEl = document.getElementById(target);
+  if (!imgEl) return;
+  
+  if (target === 'faceImg') {
+    imgEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==';
+    imgEl.classList.add('is-empty');
+  } else {
+    imgEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==';
+  }
+  
+  // Update thumb usage markers
+  updateThumbUsageMarkers();
+  
+  console.log('Cleared drop zone:', target);
+}
 
 function setupImageDropTarget(imgEl){
   if (!(imgEl instanceof HTMLImageElement)) return;
@@ -354,6 +736,9 @@ function setupImageDropTarget(imgEl){
       imgEl.classList.remove('is-empty');
       updateThumbUsageMarkers();
       syncComposerFromImageSrc(imgEl, imgEl.src);
+      if (imgEl.id === 'faceImg') {
+        checkAndUpdateEruditToggle();
+      }
       return;
     }
     const url = dt?.getData("text/uri-list") || dt?.getData("text/plain");
@@ -362,6 +747,9 @@ function setupImageDropTarget(imgEl){
       imgEl.classList.remove('is-empty');
       updateThumbUsageMarkers();
       syncComposerFromImageSrc(imgEl, url);
+      if (imgEl.id === 'faceImg') {
+        checkAndUpdateEruditToggle();
+      }
     }
   };
   imgEl.addEventListener("dragenter", enter);
@@ -370,12 +758,12 @@ function setupImageDropTarget(imgEl){
   imgEl.addEventListener("drop",      drop);
 }
 
-[bgImg, faceImg, wmImg].forEach(setupImageDropTarget);
+[bgImg, faceImg, wmImg, frameImg].forEach(setupImageDropTarget);
 
 function updateThumbUsageMarkers(){
   const thumbs = Array.from(document.querySelectorAll('.thumbs .thumb'));
   const clear = (cls) => thumbs.forEach(t => t.classList.remove(cls));
-  clear('used-bg'); clear('used-face'); clear('used-wm');
+  clear('used-bg'); clear('used-face'); clear('used-wm'); clear('used-frame');
 
   const markFor = (imgEl, cls) => {
     const src = imgEl?.src || '';
@@ -387,9 +775,10 @@ function updateThumbUsageMarkers(){
   markFor(bgImg, 'used-bg');
   markFor(faceImg, 'used-face');
   markFor(wmImg, 'used-wm');
+  markFor(frameImg, 'used-frame');
   
 
-  document.querySelectorAll('.drop-zone').forEach(zone => zone.classList.remove('has-bg','has-face','has-wm'));
+  document.querySelectorAll('.drop-zone').forEach(zone => zone.classList.remove('has-bg','has-face','has-wm','has-frame'));
   const setZone = (id, cls, el) => {
     const zone = document.querySelector(`.drop-zone[data-target="${id}"]`);
     if (!zone) return;
@@ -399,11 +788,12 @@ function updateThumbUsageMarkers(){
   setZone('bgImg','has-bg', bgImg);
   setZone('faceImg','has-face', faceImg);
   setZone('wmImg','has-wm', wmImg);
+  setZone('frameImg','has-frame', frameImg);
   
 
 }
 
-window.addEventListener('load', updateThumbUsageMarkers);
+// updateThumbUsageMarkers now called in main load event
 
 function parseCatalogPath(src){
   try{
@@ -416,20 +806,14 @@ function parseCatalogPath(src){
   return null;
 }
 
+
 function syncComposerFromImageSrc(imgEl, src){
   const meta = parseCatalogPath(src);
   if (!meta) return;
   const cat = meta.category;
-  const row = document.querySelector(`#composer tbody tr[data-cat="${cat}"]`);
-  if (!row) return;
-  const themeSel = row.querySelector('select.theme');
-  const raritySel = row.querySelector('select.rarity');
-  if (cat === 'background'){
-    if (themeSel && meta.index) themeSel.value = String(meta.index);
-    if (raritySel && meta.rarity) raritySel.value = meta.rarity;
-  } else {
-    if (themeSel && meta.theme) themeSel.value = meta.theme;
-    if (raritySel && meta.rarity) raritySel.value = meta.rarity;
+  
+  if (cat === 'watermark') {
+    ensureWmOverlay(meta.theme, meta.rarity);
   }
 }
 
@@ -444,6 +828,15 @@ const rarityToTint = {
 
 function buildAssetPathCandidates(category, theme, rarity){
   const candidates = [];
+  
+  if (category === 'background' && rarity === 'mystic') {
+    candidates.push(
+      './assets/catalog/background/mystic/mystic1.jpg',
+      './assets/catalog/background/mystic/mystic4.svg'
+    );
+    return candidates;
+  }
+  
   if (category === 'background' && /^\d+$/.test(String(theme))) {
     const idx = String(theme);
     candidates.push(
@@ -454,6 +847,7 @@ function buildAssetPathCandidates(category, theme, rarity){
     );
     return candidates;
   }
+  
   candidates.push(
     `./assets/catalog/${category}/${theme}/${rarity}.png`,
     `./assets/catalog/${category}/${theme}/${rarity}.svg`,
@@ -467,8 +861,8 @@ function applyComposerRow(row){
   const rarity = row.querySelector('select.rarity')?.value;
   const tint = rarityToTint[rarity] || '#ffffff';
   
-  // Résoudre et tester les chemins candidats (supporte le nouveau schéma background)
   const candidates = buildAssetPathCandidates(category, theme, rarity);
+  
   
   const tryLoadImage = (urlIdx) => {
     const url = candidates[urlIdx];
@@ -484,10 +878,21 @@ function applyComposerRow(row){
       } else if (category === 'face') {
         faceImg.src = url;
         faceImg.classList.remove('is-empty');
+        checkAndUpdateEruditToggle();
       } else if (category === 'watermark') {
         wmImg.src = url;
         wmImg.classList.remove('is-empty');
         wmImg.style.filter = `brightness(1.12) saturate(1.06) contrast(0.98)`;
+          // Apply watermark styles based on type
+          if (wmImg.src.includes('/erudit/')) {
+            transformState.wm.y = 98;
+            transformState.wm.brightness = 1.81;
+            applyTransformState();
+          } else if (wmImg.src.includes('/sphere/')) {
+            transformState.wm.y = 0;
+            transformState.wm.brightness = 1;
+            applyTransformState();
+          }
       }
       updateThumbUsageMarkers();
     };
@@ -623,52 +1028,52 @@ function setupInfoConfig(){
 
 setupInfoConfig();
 
-document.getElementById('composer')?.addEventListener('click', (e) => {
-  const btn = (e.target instanceof HTMLElement) ? e.target.closest('button') : null;
-  if (!(btn instanceof HTMLButtonElement)) return;
-  const row = btn.closest('tr');
-  if (!row) return;
-  
-  if (btn.classList.contains('row-rand')) {
-    const themeSel = row.querySelector('select.theme');
-    const raritySel = row.querySelector('select.rarity');
-    const cat = row.dataset.cat;
-    
-    if (themeSel) {
-      const newTheme = (cat === 'background') ? pick(["1","2","3","4","5"]) : pick(THEMES);
-      themeSel.value = newTheme;
-    }
-    if (raritySel) {
-      const newRarity = pick(RARITIES);
-      raritySel.value = newRarity;
-    }
-    applyComposerRow(row);
-  }
-});
+// document.getElementById('composer')?.addEventListener('click', (e) => {
+//   const btn = (e.target instanceof HTMLElement) ? e.target.closest('button') : null;
+//   if (!(btn instanceof HTMLButtonElement)) return;
+//   const row = btn.closest('tr');
+//   if (!row) return;
+//   
+//   if (btn.classList.contains('row-rand')) {
+//     const themeSel = row.querySelector('select.theme');
+//     const raritySel = row.querySelector('select.rarity');
+//     const cat = row.dataset.cat;
+//     
+//     if (themeSel) {
+//       const newTheme = (cat === 'background') ? pick(["1","2","3","4","5"]) : pick(THEMES);
+//       themeSel.value = newTheme;
+//     }
+//     if (raritySel) {
+//       const newRarity = pick(RARITIES);
+//       raritySel.value = newRarity;
+//     }
+//     applyComposerRow(row);
+//   }
+// });
 
-document.querySelectorAll('.row-rand').forEach(btn => {
-  btn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const row = btn.closest('tr');
-    if (!row) return;
-    const themeSel = row.querySelector('select.theme');
-    const raritySel = row.querySelector('select.rarity');
-    const cat = row.dataset.cat;
-    if (themeSel) themeSel.value = (cat === 'background') ? pick(["1","2","3","4","5"]) : pick(THEMES);
-    if (raritySel) raritySel.value = pick(RARITIES);
-    applyComposerRow(row);
-  });
-});
+// document.querySelectorAll('.row-rand').forEach(btn => {
+//   btn.addEventListener('click', (e) => {
+//     e.preventDefault();
+//     e.stopPropagation();
+//     const row = btn.closest('tr');
+//     if (!row) return;
+//     const themeSel = row.querySelector('select.theme');
+//     const raritySel = row.querySelector('select.rarity');
+//     const cat = row.dataset.cat;
+//     if (themeSel) themeSel.value = (cat === 'background') ? pick(["1","2","3","4","5"]) : pick(THEMES);
+//     if (raritySel) raritySel.value = pick(RARITIES);
+//     applyComposerRow(row);
+//   });
+// });
 
-document.querySelectorAll('#composer select').forEach(select => {
-  select.addEventListener('change', (e) => {
-    const row = e.target.closest('tr');
-    if (row) {
-      applyComposerRow(row);
-    }
-  });
-});
+// document.querySelectorAll('#composer select').forEach(select => {
+//   select.addEventListener('change', (e) => {
+//     const row = e.target.closest('tr');
+//     if (row) {
+//       applyComposerRow(row);
+//     }
+//   });
+// });
 
 document.querySelectorAll('.show-toggle').forEach(toggle => {
   toggle.addEventListener('change', (e) => {
@@ -693,9 +1098,24 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
       return;
     }
     const f = dt?.files?.[0];
-    if (f && f.type?.startsWith('image/')) { fileToTarget(f, targetEl); targetEl.classList.remove('is-empty'); updateThumbUsageMarkers(); return; }
+    if (f && f.type?.startsWith('image/')) { 
+      fileToTarget(f, targetEl); 
+      targetEl.classList.remove('is-empty'); 
+      updateThumbUsageMarkers(); 
+      if (targetId === 'faceImg') {
+        checkAndUpdateEruditToggle();
+      }
+      return; 
+    }
     const url = dt?.getData('text/uri-list') || dt?.getData('text/plain');
-    if (url) { targetEl.src = url; targetEl.classList.remove('is-empty'); updateThumbUsageMarkers(); }
+    if (url) { 
+      targetEl.src = url; 
+      targetEl.classList.remove('is-empty'); 
+      updateThumbUsageMarkers(); 
+      if (targetId === 'faceImg') {
+        checkAndUpdateEruditToggle();
+      }
+    }
   };
   zone.addEventListener('dragenter', enter);
   zone.addEventListener('dragover',  over);
@@ -711,6 +1131,7 @@ function applyComposerVisibility(){
   avatarPanel?.classList.remove("hidden");
   infoPanel?.classList.remove("hidden");
   if (!isTargetShown('wm')) wmImg.style.opacity = "0";
+  if (wmOverlayImg) wmOverlayImg.classList.toggle("hidden", !isTargetShown('wm'));
 }
 document.querySelectorAll('.show-toggle').forEach(cb => {
   cb.addEventListener('change', applyComposerVisibility);
@@ -740,27 +1161,867 @@ setTimeout(() => {
 
 window.addEventListener("beforeunload", () => urls.forEach(URL.revokeObjectURL));
 
-
-function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
-
-function randomizeAll(){
-  const rows = document.querySelectorAll('#composer tbody tr');
-  rows.forEach(row => {
-    const themeSel = row.querySelector('select.theme');
-    const raritySel = row.querySelector('select.rarity');
-    if (themeSel) {
-      const cat = row.dataset.cat;
-      themeSel.value = (cat === 'background') ? pick(BG_INDEXES) : pick(THEMES);
-    }
-    if (raritySel) raritySel.value = pick(RARITIES);
-    applyComposerRow(row);
+// Randomization
+function randomizeAll() {
+  Object.keys(transformState).forEach(key => {
+    transformState[key] = { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 };
   });
+  
+  eruditStyleApplied = false;
   applyTransformState();
-  applyComposerVisibility();
+  resetControlsToDefault();
+  
+  // Randomize each component
+  const bgRarity = pick(RARITIES);
+  const bgIdx = pick(BG_INDEXES);
+  const bgCandidates = buildAssetPathCandidates('background', bgIdx, bgRarity);
+  tryLoadRandomImage(bgCandidates, bgImg);
+  
+  const frameTheme = pick(THEMES);
+  const frameRarity = pick(RARITIES);
+  const frameCandidates = buildAssetPathCandidates('frame', frameTheme, frameRarity);
+  tryLoadRandomImage(frameCandidates, frameImg);
+  
+  const faceTheme = pick(THEMES);
+  const faceRarity = pick(RARITIES.filter(r => r !== 'mystic'));
+  const faceCandidates = buildAssetPathCandidates('face', faceTheme, faceRarity);
+  tryLoadRandomImage(faceCandidates, faceImg, () => {
+    checkAndUpdateEruditToggle();
+  });
+  
+  const wmTheme = pick(THEMES);
+  const wmRarity = pick(RARITIES);
+  const wmCandidates = buildAssetPathCandidates('watermark', wmTheme, wmRarity);
+  tryLoadRandomImage(wmCandidates, wmImg, () => {
+    if (wmImg.src.includes('/erudit/')) {
+      transformState.wm.y = 98;
+      transformState.wm.brightness = 1.81;
+      applyTransformState();
+    } else if (wmImg.src.includes('/sphere/')) {
+      transformState.wm.y = 0;
+      transformState.wm.brightness = 1;
+      applyTransformState();
+    }
+  });
+  
+  updateThumbUsageMarkers();
 }
 
-document.getElementById('randomizeBtn')?.addEventListener('click', (e)=>{ e.preventDefault(); randomizeAll(); });
-document.addEventListener('click', (e)=>{
-  const btn = (e.target instanceof HTMLElement) ? e.target.closest('#randomizeBtn') : null;
-  if (btn) { e.preventDefault(); randomizeAll(); }
+function tryLoadRandomImage(candidates, targetImg, onLoad = null) {
+  const tryLoad = (idx) => {
+    if (!candidates[idx]) return;
+    
+    const img = new Image();
+    img.onload = () => {
+      targetImg.src = candidates[idx];
+      targetImg.classList.remove('is-empty');
+      onLoad?.();
+    };
+    img.onerror = () => tryLoad(idx + 1);
+    img.src = candidates[idx];
+  };
+  
+  tryLoad(0);
+}
+
+// Event Listeners
+document.getElementById('randomizeBtn')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  randomizeAll();
 });
+
+document.addEventListener('click', (e) => {
+  const btn = e.target instanceof HTMLElement ? e.target.closest('#randomizeBtn') : null;
+  if (btn) {
+    e.preventDefault();
+    randomizeAll();
+  }
+});
+
+// Favorites System
+
+function getCurrentComposition() {
+  return {
+    bgSrc: bgImg.src,
+    faceSrc: faceImg.src,
+    wmSrc: wmImg.src,
+    frameSrc: frameImg.src,
+    avatarSrc: avatarImg.src,
+    timestamp: Date.now()
+  };
+}
+
+function loadComposition(comp) {
+  if (comp.bgSrc) bgImg.src = comp.bgSrc;
+  if (comp.faceSrc) faceImg.src = comp.faceSrc;
+  if (comp.wmSrc) wmImg.src = comp.wmSrc;
+  if (comp.frameSrc) frameImg.src = comp.frameSrc;
+  if (comp.avatarSrc) avatarImg.src = comp.avatarSrc;
+  updateThumbUsageMarkers();
+  checkAndUpdateEruditToggle();
+  
+    // Apply watermark styles based on type
+    if (wmImg.src.includes('/erudit/')) {
+      transformState.wm.y = 98;
+      transformState.wm.brightness = 1.81;
+      applyTransformState();
+    } else if (wmImg.src.includes('/sphere/')) {
+      transformState.wm.y = 0;
+      transformState.wm.brightness = 1;
+      applyTransformState();
+    }
+}
+
+function getFavorites() {
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch(e) {
+    console.error('Erreur lecture localStorage:', e);
+    return {};
+  }
+}
+
+function saveFavorites(favorites) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(favorites));
+  } catch(e) {
+    console.error('Erreur sauvegarde localStorage:', e);
+  }
+}
+
+function saveComposition(name) {
+  if (!name || !name.trim()) {
+    alert('Veuillez entrer un nom pour la composition');
+    return;
+  }
+  const favorites = getFavorites();
+  favorites[name] = getCurrentComposition();
+  saveFavorites(favorites);
+  renderFavorites();
+}
+
+function deleteComposition(name) {
+  if (!confirm(`Supprimer "${name}" ?`)) return;
+  const favorites = getFavorites();
+  delete favorites[name];
+  saveFavorites(favorites);
+  renderFavorites();
+}
+
+function renderFavorites() {
+  const container = document.getElementById('favoritesList');
+  if (!container) return;
+  
+  const favorites = getFavorites();
+  const keys = Object.keys(favorites);
+  
+  if (keys.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:16px; color:rgba(255,255,255,.5); font-size:12px;">Aucune composition sauvegardée</div>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  keys.sort().forEach((name, index) => {
+    const comp = favorites[name];
+    const item = document.createElement('div');
+    item.className = 'favorite-item';
+    item.style.cssText = 'display:flex; align-items:center; gap:6px; padding:6px 8px; border-radius:6px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15);';
+    
+    const numberSpan = document.createElement('span');
+    numberSpan.textContent = index + 1;
+    numberSpan.style.cssText = 'font-size:11px; font-weight:600; color:#fff; min-width:20px;';
+    
+    const loadBtn = document.createElement('button');
+    loadBtn.className = 'load-favorite';
+    loadBtn.textContent = '👁';
+    loadBtn.title = 'Load';
+    loadBtn.style.cssText = 'padding:4px; background:rgba(78,161,255,.2); border:1px solid rgba(78,161,255,.4); color:#4ea1ff; border-radius:4px; cursor:pointer; font-size:12px;';
+    loadBtn.onclick = () => loadComposition(comp);
+    
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-favorite';
+    deleteBtn.textContent = '✕';
+    deleteBtn.title = 'Delete';
+    deleteBtn.style.cssText = 'padding:4px; background:rgba(255,90,90,.2); border:1px solid rgba(255,90,90,.4); color:#ff5a5a; border-radius:4px; cursor:pointer; font-size:12px;';
+    deleteBtn.onclick = () => deleteComposition(name);
+    
+    item.appendChild(numberSpan);
+    item.appendChild(loadBtn);
+    item.appendChild(deleteBtn);
+    container.appendChild(item);
+  });
+}
+
+function initializeSaveButton() {
+  const saveBtn = document.getElementById('saveComposition');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const input = document.getElementById('compositionName');
+      if (input) {
+        saveComposition(input.value);
+        input.value = '';
+      }
+    });
+    console.log('Save button initialized');
+  } else {
+    console.error('Save button not found!');
+  }
+}
+
+
+
+function applyFilter(filter) {
+  const thumbs = document.querySelectorAll('#allThumbs .thumb');
+  const activeRarityBtn = document.querySelector('.rarity-btn.active');
+  const activeRarity = activeRarityBtn ? activeRarityBtn.dataset.rarity : 'all';
+  
+  console.log('Applying filter:', filter, 'with rarity:', activeRarity, 'to', thumbs.length, 'thumbs');
+  
+  let visibleCount = 0;
+  thumbs.forEach(thumb => {
+    if (thumb.classList.contains('thumb-empty')) {
+      return;
+    }
+    
+    const category = thumb.dataset.category;
+    const rarity = thumb.dataset.rarity;
+    
+    const categoryMatch = filter === 'all' || category === filter;
+    const rarityMatch = activeRarity === 'all' || rarity === activeRarity;
+    
+    if (categoryMatch && rarityMatch) {
+      thumb.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      thumb.classList.add('hidden');
+    }
+  });
+  
+  console.log('Visible thumbs after filter:', visibleCount);
+}
+
+
+function applyRarityFilter(rarity) {
+  const thumbs = document.querySelectorAll('#allThumbs .thumb');
+  const activeFilterBtn = document.querySelector('.filter-btn.active');
+  const activeFilter = activeFilterBtn ? activeFilterBtn.dataset.filter : 'all';
+  
+  console.log('Applying rarity filter:', rarity, 'with category:', activeFilter, 'to', thumbs.length, 'thumbs');
+  
+  let visibleCount = 0;
+  thumbs.forEach(thumb => {
+    if (thumb.classList.contains('thumb-empty')) {
+      return;
+    }
+    
+    const category = thumb.dataset.category;
+    const thumbRarity = thumb.dataset.rarity;
+    
+    const categoryMatch = activeFilter === 'all' || category === activeFilter;
+    const rarityMatch = rarity === 'all' || thumbRarity === rarity;
+    
+    if (categoryMatch && rarityMatch) {
+      thumb.classList.remove('hidden');
+      visibleCount++;
+    } else {
+      thumb.classList.add('hidden');
+    }
+  });
+  
+  console.log('Visible thumbs after rarity filter:', visibleCount);
+}
+
+// Rarity Rotation System
+let rarityIndex = 0;
+const rarities = ['common', 'rare', 'epic', 'legendary', 'ancient', 'mystic'];
+
+const scholarPresets = {
+  common: {
+    background: './assets/catalog/background/common/common4.svg',
+    face: './assets/catalog/face/erudit/common.svg',
+    frame: './assets/catalog/frame/erudit/common.svg',
+    watermark: './assets/catalog/watermark/erudit/common.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 2, x: 0, y: 136, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 98, opacity: 1, brightness: 1.81 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  rare: {
+    background: './assets/catalog/background/rare/rare4.svg',
+    face: './assets/catalog/face/erudit/rare.svg',
+    frame: './assets/catalog/frame/erudit/rare.svg',
+    watermark: './assets/catalog/watermark/erudit/rare.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 2, x: 0, y: 136, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 98, opacity: 1, brightness: 1.81 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  epic: {
+    background: './assets/catalog/background/epic/epic4.svg',
+    face: './assets/catalog/face/erudit/epic.svg',
+    frame: './assets/catalog/frame/erudit/epic.svg',
+    watermark: './assets/catalog/watermark/erudit/epic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 2, x: 0, y: 136, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 98, opacity: 1, brightness: 1.81 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  legendary: {
+    background: './assets/catalog/background/legendary/legendary4.svg',
+    face: './assets/catalog/face/erudit/legendary.svg',
+    frame: './assets/catalog/frame/erudit/legendary.svg',
+    watermark: './assets/catalog/watermark/erudit/legendary.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 2, x: 0, y: 136, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 98, opacity: 1, brightness: 1.81 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  ancient: {
+    background: './assets/catalog/background/ancient/ancient4.svg',
+    face: './assets/catalog/face/erudit/ancient.svg',
+    frame: './assets/catalog/frame/erudit/ancient.svg',
+    watermark: './assets/catalog/watermark/erudit/ancient.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 2, x: 0, y: 136, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 98, opacity: 1, brightness: 1.81 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  mystic: {
+    background: './assets/catalog/background/mystic/mystic4.svg',
+    face: './assets/catalog/face/erudit/mystic.svg',
+    frame: './assets/catalog/frame/erudit/mystic.svg',
+    watermark: './assets/catalog/watermark/erudit/mystic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 2, x: 0, y: 136, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 98, opacity: 1, brightness: 1.81 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  }
+};
+
+
+const beePresets = {
+  common: {
+    background: './assets/catalog/background/common/common.svg',
+    face: './assets/catalog/face/abeille/common.svg',
+    frame: './assets/catalog/frame/abeille/common.svg',
+    watermark: './assets/catalog/watermark/abeille/common.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 0.7, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  rare: {
+    background: './assets/catalog/background/rare/rare.svg',
+    face: './assets/catalog/face/abeille/rare.svg',
+    frame: './assets/catalog/frame/abeille/rare.svg',
+    watermark: './assets/catalog/watermark/abeille/rare.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 0.7, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  epic: {
+    background: './assets/catalog/background/epic/epic.svg',
+    face: './assets/catalog/face/abeille/epic.svg',
+    frame: './assets/catalog/frame/abeille/epic.svg',
+    watermark: './assets/catalog/watermark/abeille/epic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 0.7, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  legendary: {
+    background: './assets/catalog/background/legendary/legendary.svg',
+    face: './assets/catalog/face/abeille/legendary.svg',
+    frame: './assets/catalog/frame/abeille/legendary.svg',
+    watermark: './assets/catalog/watermark/abeille/legendary.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 0.7, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  ancient: {
+    background: './assets/catalog/background/ancient/ancient.svg',
+    face: './assets/catalog/face/abeille/ancient.svg',
+    frame: './assets/catalog/frame/abeille/ancient.svg',
+    watermark: './assets/catalog/watermark/abeille/ancient.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 0.7, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  mystic: {
+    background: './assets/catalog/background/mystic/mystic1.jpg',
+    face: './assets/catalog/face/abeille/mystic.svg',
+    frame: './assets/catalog/frame/abeille/mystic.svg',
+    watermark: './assets/catalog/watermark/abeille/mystic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 0.7, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  }
+};
+
+const spherePresets = {
+  common: {
+    background: './assets/catalog/background/common/common4.svg',
+    face: './assets/catalog/face/sphere/common.svg',
+    frame: './assets/catalog/frame/sphere/common.svg',
+    watermark: './assets/catalog/watermark/sphere/common.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  rare: {
+    background: './assets/catalog/background/rare/rare4.svg',
+    face: './assets/catalog/face/sphere/rare.svg',
+    frame: './assets/catalog/frame/sphere/rare.svg',
+    watermark: './assets/catalog/watermark/sphere/rare.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  epic: {
+    background: './assets/catalog/background/epic/epic4.svg',
+    face: './assets/catalog/face/sphere/epic.svg',
+    frame: './assets/catalog/frame/sphere/epic.svg',
+    watermark: './assets/catalog/watermark/sphere/epic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  legendary: {
+    background: './assets/catalog/background/legendary/legendary4.svg',
+    face: './assets/catalog/face/sphere/legendary.svg',
+    frame: './assets/catalog/frame/sphere/legendary.svg',
+    watermark: './assets/catalog/watermark/sphere/legendary.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  ancient: {
+    background: './assets/catalog/background/ancient/ancient4.svg',
+    face: './assets/catalog/face/sphere/ancient.svg',
+    frame: './assets/catalog/frame/sphere/ancient.svg',
+    watermark: './assets/catalog/watermark/sphere/ancient.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  mystic: {
+    background: './assets/catalog/background/mystic/mystic1.jpg',
+    face: './assets/catalog/face/sphere/mystic.svg',
+    frame: './assets/catalog/frame/sphere/mystic.svg',
+    watermark: './assets/catalog/watermark/sphere/mystic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  }
+};
+
+const scholar2Presets = {
+  common: {
+    background: '', // No background
+    face: './assets/catalog/watermark/sphere/common.svg', // sphere watermark as face
+    frame: './assets/catalog/frame/sphere/common.svg', // sphere frame
+    watermark: './assets/catalog/face/erudit/common.svg', // erudit face as watermark
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 150, opacity: 1, brightness: 1 }, // offset Y 150
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  rare: {
+    background: '', // No background
+    face: './assets/catalog/watermark/sphere/rare.svg',
+    frame: './assets/catalog/frame/sphere/rare.svg',
+    watermark: './assets/catalog/face/erudit/rare.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 150, opacity: 1, brightness: 1 }, // offset Y 150
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  epic: {
+    background: '', // No background
+    face: './assets/catalog/watermark/sphere/epic.svg',
+    frame: './assets/catalog/frame/sphere/epic.svg',
+    watermark: './assets/catalog/face/erudit/epic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 150, opacity: 1, brightness: 1 }, // offset Y 150
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  legendary: {
+    background: '', // No background
+    face: './assets/catalog/watermark/sphere/legendary.svg',
+    frame: './assets/catalog/frame/sphere/legendary.svg',
+    watermark: './assets/catalog/face/erudit/legendary.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 150, opacity: 1, brightness: 1 }, // offset Y 150
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  ancient: {
+    background: '', // No background
+    face: './assets/catalog/watermark/sphere/ancient.svg',
+    frame: './assets/catalog/frame/sphere/ancient.svg',
+    watermark: './assets/catalog/face/erudit/ancient.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 150, opacity: 1, brightness: 1 }, // offset Y 150
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  },
+  mystic: {
+    background: '', // No background
+    face: './assets/catalog/watermark/sphere/mystic.svg',
+    frame: './assets/catalog/frame/sphere/mystic.svg',
+    watermark: './assets/catalog/face/erudit/mystic.svg',
+    transforms: {
+      bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+      wm: { scale: 1, x: 0, y: 150, opacity: 1, brightness: 1 }, // offset Y 150
+      frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 }
+    }
+  }
+};
+
+const presets = {
+};
+
+function initializePresets() {
+  const presetBtns = document.querySelectorAll('.preset-btn');
+  
+  console.log('Found preset buttons:', presetBtns.length);
+  
+  presetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const presetName = btn.dataset.preset;
+      console.log('Applying preset:', presetName);
+      applyPreset(presetName);
+    });
+  });
+}
+
+function applyPreset(presetName) {
+  if (presetName === 'scholar') {
+    const currentRarity = rarities[rarityIndex];
+    const preset = scholarPresets[currentRarity];
+    
+    if (!preset) {
+      console.error('Scholar preset not found for rarity:', currentRarity);
+      return;
+    }
+
+    // Apply each asset
+    if (preset.background) {
+      bgImg.src = preset.background;
+    }
+    if (preset.face) {
+      faceImg.src = preset.face;
+      faceImg.classList.remove('is-empty');
+    }
+    if (preset.frame) {
+      frameImg.src = preset.frame;
+    }
+    if (preset.watermark) {
+      wmImg.src = preset.watermark;
+    }
+
+    // Apply transforms if they exist
+    if (preset.transforms) {
+      Object.keys(preset.transforms).forEach(target => {
+        if (transformState[target] && preset.transforms[target]) {
+          transformState[target] = { ...preset.transforms[target] };
+        }
+      });
+      applyTransformState();
+
+      resetControlsToDefault();
+    }
+
+    // Update thumb usage markers
+    updateThumbUsageMarkers();
+    checkAndUpdateEruditToggle();
+
+    // Move to next rarity for next click
+    rarityIndex = (rarityIndex + 1) % rarities.length;
+    
+    // Update button description to show current rarity
+    const scholarBtn = document.getElementById('scholarBtn');
+    if (scholarBtn) {
+      const descSpan = scholarBtn.querySelector('.preset-desc');
+      if (descSpan) {
+        descSpan.textContent = `Scholar (${currentRarity.charAt(0).toUpperCase() + currentRarity.slice(1)})`;
+      }
+    }
+
+    console.log('Scholar preset applied:', currentRarity);
+    return;
+  }
+
+
+  if (presetName === 'bee') {
+    const currentRarity = rarities[rarityIndex];
+    const preset = beePresets[currentRarity];
+    
+    if (!preset) {
+      console.error('Bee preset not found for rarity:', currentRarity);
+      return;
+    }
+
+    // Apply each asset
+    if (preset.background) {
+      bgImg.src = preset.background;
+    }
+    if (preset.face) {
+      faceImg.src = preset.face;
+      faceImg.classList.remove('is-empty');
+    }
+    if (preset.frame) {
+      frameImg.src = preset.frame;
+    }
+    if (preset.watermark) {
+      wmImg.src = preset.watermark;
+    }
+
+    // Apply transforms if they exist
+    if (preset.transforms) {
+      Object.keys(preset.transforms).forEach(target => {
+        if (transformState[target] && preset.transforms[target]) {
+          transformState[target] = { ...preset.transforms[target] };
+        }
+      });
+      applyTransformState();
+
+      resetControlsToDefault();
+    }
+
+    // Update thumb usage markers
+    updateThumbUsageMarkers();
+    checkAndUpdateEruditToggle();
+
+    // Move to next rarity for next click
+    rarityIndex = (rarityIndex + 1) % rarities.length;
+    
+    // Update button description to show current rarity
+    const beeBtn = document.getElementById('beeBtn');
+    if (beeBtn) {
+      const descSpan = beeBtn.querySelector('.preset-desc');
+      if (descSpan) {
+        descSpan.textContent = `Bee (${currentRarity.charAt(0).toUpperCase() + currentRarity.slice(1)})`;
+      }
+    }
+
+    console.log('Bee preset applied:', currentRarity);
+    return;
+  }
+
+  if (presetName === 'sphere_alt') {
+    const currentRarity = rarities[rarityIndex];
+    const preset = spherePresets[currentRarity];
+    
+    if (!preset) {
+      console.error('Sphere Alt preset not found for rarity:', currentRarity);
+      return;
+    }
+
+    // Apply each asset
+    if (preset.background) {
+      bgImg.src = preset.background;
+    }
+    if (preset.face) {
+      faceImg.src = preset.face;
+      faceImg.classList.remove('is-empty');
+    }
+    if (preset.frame) {
+      frameImg.src = preset.frame;
+    }
+    if (preset.watermark) {
+      wmImg.src = preset.watermark;
+    }
+
+    // Apply transforms if they exist
+    if (preset.transforms) {
+      Object.keys(preset.transforms).forEach(target => {
+        if (transformState[target] && preset.transforms[target]) {
+          transformState[target] = { ...preset.transforms[target] };
+        }
+      });
+      applyTransformState();
+
+      resetControlsToDefault();
+    }
+
+    // Update thumb usage markers
+    updateThumbUsageMarkers();
+    checkAndUpdateEruditToggle();
+
+    // Move to next rarity for next click
+    rarityIndex = (rarityIndex + 1) % rarities.length;
+    
+    // Update button description to show current rarity
+    const sphereAltBtn = document.getElementById('sphereAltBtn');
+    if (sphereAltBtn) {
+      const descSpan = sphereAltBtn.querySelector('.preset-desc');
+      if (descSpan) {
+        descSpan.textContent = `Sphere (${currentRarity.charAt(0).toUpperCase() + currentRarity.slice(1)})`;
+      }
+    }
+
+    console.log('Sphere preset applied:', currentRarity);
+    return;
+  }
+
+  if (presetName === 'scholar2') {
+    const currentRarity = rarities[rarityIndex];
+    const preset = scholar2Presets[currentRarity];
+    
+    if (!preset) {
+      console.error('Scholar2 preset not found for rarity:', currentRarity);
+      return;
+    }
+
+    // Apply each asset
+    if (preset.background) {
+      bgImg.src = preset.background;
+    } else if (preset.background === '') {
+      bgImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5CYII=';
+    }
+    if (preset.face) {
+      faceImg.src = preset.face;
+      faceImg.classList.remove('is-empty');
+    }
+    if (preset.frame) {
+      frameImg.src = preset.frame;
+    }
+    if (preset.watermark) {
+      wmImg.src = preset.watermark;
+    }
+
+    // Apply transforms if they exist
+    if (preset.transforms) {
+      Object.keys(preset.transforms).forEach(target => {
+        if (transformState[target] && preset.transforms[target]) {
+          transformState[target] = { ...preset.transforms[target] };
+        }
+      });
+      applyTransformState();
+    }
+
+    // Always reset controls to default values after applying preset
+    resetControlsToDefault();
+
+    // Update button description
+    const btn = document.getElementById('scholar2Btn');
+    if (btn) {
+      const desc = btn.querySelector('.preset-desc');
+      if (desc) {
+        desc.textContent = `Scholar2 ${currentRarity.charAt(0).toUpperCase() + currentRarity.slice(1)}`;
+      }
+    }
+
+    // Cycle to next rarity
+    rarityIndex = (rarityIndex + 1) % rarities.length;
+    updateThumbUsageMarkers();
+    checkAndUpdateEruditToggle();
+    console.log('Scholar2 preset applied:', currentRarity);
+    return;
+  }
+
+  const preset = presets[presetName];
+  if (!preset) {
+    console.error('Preset not found:', presetName);
+    return;
+  }
+
+  // Apply each asset
+  if (preset.background) {
+    bgImg.src = preset.background;
+  } else if (preset.background === '') {
+    // Set to empty background
+    bgImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5CYII=';
+  }
+  if (preset.face) {
+    faceImg.src = preset.face;
+    faceImg.classList.remove('is-empty');
+  }
+  if (preset.frame) {
+    frameImg.src = preset.frame;
+  }
+  if (preset.watermark) {
+    wmImg.src = preset.watermark;
+  }
+
+  // Apply transforms if they exist
+  if (preset.transforms) {
+    Object.keys(preset.transforms).forEach(target => {
+      if (transformState[target] && preset.transforms[target]) {
+        transformState[target] = { ...preset.transforms[target] };
+      }
+    });
+    applyTransformState();
+
+    // Always reset controls to default values after applying preset
+    resetControlsToDefault();
+  }
+
+  // Update thumb usage markers
+  updateThumbUsageMarkers();
+  checkAndUpdateEruditToggle();
+
+  console.log('Preset applied:', presetName);
+}
+
+

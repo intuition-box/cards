@@ -35,27 +35,55 @@
 
   <main class="layout">
     
-    <aside class="thumbs-rail" aria-label="Thumbnails">
-      <button class="thumbs-handle" id="thumbsHandle" aria-controls="thumbsFlyout" aria-expanded="true">Thumbnails</button>
-      <div class="thumbs-flyout panel" id="thumbsFlyout" aria-hidden="false">
-        <div class="thumbs-header">
-          <button class="apply" id="closeThumbs" aria-label="Close thumbnails">Close</button>
+    <aside class="left-rail" aria-label="Thumbnails">
+      <div class="thumbs-header">
+        <button class="apply" id="closeLeftRail" aria-label="Close thumbnails">Close</button>
+      </div>
+      <div class="left-rail-content" id="leftRailContent" aria-hidden="false">
+        <div class="filter-buttons">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="background">BG</button>
+          <button class="filter-btn" data-filter="watermark">WM</button>
+          <button class="filter-btn" data-filter="face">Face</button>
+          <button class="filter-btn" data-filter="frame">Frame</button>
         </div>
-        <div class="thumbs" id="imagesThumbs">
+        
+        <div class="rarity-buttons" style="display:flex; gap:4px; margin-top:8px; flex-wrap:wrap;">
+          <button class="rarity-btn active" data-rarity="all">All</button>
+          <button class="rarity-btn" data-rarity="common">Common</button>
+          <button class="rarity-btn" data-rarity="rare">Rare</button>
+          <button class="rarity-btn" data-rarity="epic">Epic</button>
+          <button class="rarity-btn" data-rarity="legendary">Legendary</button>
+          <button class="rarity-btn" data-rarity="ancient">Ancient</button>
+          <button class="rarity-btn" data-rarity="mystic">Mystic</button>
+        </div>
+        
+        <div class="thumbs-container" id="allThumbs">
           <div class="thumb thumb-empty" data-empty title="Empty">Empty</div>
         </div>
       </div>
     </aside>
 
-    
     <aside class="drops-rail" aria-label="Drop zones">
       <div class="panel drop-panel" id="leftDropPanel">
         <h2>Drop here</h2>
         <div class="drop-zones">
-          <div class="drop-zone" data-target="bgImg"   title="Background">BG</div>
-          <div class="drop-zone" data-target="faceImg" title="Face">Face</div>
-          <div class="drop-zone" data-target="wmImg"   title="Watermark">WM</div>
-          <div class="drop-zone" data-target="frameImg" title="Frame">Frame</div>
+          <div class="drop-zone" data-target="bgImg"   title="Background">
+            <span class="drop-zone-label">BG</span>
+            <span class="drop-zone-clear" title="Clear">✕</span>
+          </div>
+          <div class="drop-zone" data-target="faceImg" title="Face">
+            <span class="drop-zone-label">Face</span>
+            <span class="drop-zone-clear" title="Clear">✕</span>
+          </div>
+          <div class="drop-zone" data-target="wmImg"   title="Watermark">
+            <span class="drop-zone-label">WM</span>
+            <span class="drop-zone-clear" title="Clear">✕</span>
+          </div>
+          <div class="drop-zone" data-target="frameImg" title="Frame">
+            <span class="drop-zone-label">Frame</span>
+            <span class="drop-zone-clear" title="Clear">✕</span>
+          </div>
         </div>
       </div>
     </aside>
@@ -63,12 +91,12 @@
     
     <section class="stage" aria-label="Card stage">
       <div class="card" id="card" data-tilt>
-        <img id="bgImg"   class="bg-img"   src="./assets/images/img1.jpg" alt="background" />
-        <img id="faceImg" class="card-img is-empty" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==" alt="face" />
-        <img id="wmImg"   class="wm-img"   src="./assets/images/img6.png" alt="filigrane" />
+        <img id="bgImg"   class="bg-img"   src="./assets/catalog/background/common/common4.svg" alt="background" />
+        <img id="faceImg" class="card-img" src="./assets/catalog/face/erudit/common.svg" alt="face" />
+        <img id="wmImg"   class="wm-img"   src="./assets/catalog/watermark/erudit/common.svg" alt="filigrane" />
 
         <div class="glare" aria-hidden="true"></div>
-        <img id="frameImg" class="frame-img" src="./assets/catalog/frame/abeille/common.svg" alt="frame" />
+        <img id="frameImg" class="frame-img" src="./assets/catalog/frame/erudit/common.svg" alt="frame" />
 
         <div class="liquid-frame">
           <div class="avatar-panel" id="avatarPanel">
@@ -88,119 +116,65 @@
         <span class="random-icon">↻</span> Randomize
       </button>
 
+      <div class="panel">
+        <h2>Quick Presets</h2>
+        <div class="preset-buttons" style="display:flex; flex-direction:row; gap:6px; flex-wrap:wrap;">
+        <button class="preset-btn" data-preset="scholar" id="scholarBtn">
+          <span class="preset-name">1</span>
+          <span class="preset-desc">Scholar</span>
+        </button>
+          <button class="preset-btn" data-preset="bee" id="beeBtn">
+            <span class="preset-name">2</span>
+            <span class="preset-desc">Bee</span>
+          </button>
+        <button class="preset-btn" data-preset="sphere_alt" id="sphereAltBtn">
+          <span class="preset-name">3</span>
+          <span class="preset-desc">Sphere</span>
+        </button>
+        <button class="preset-btn" data-preset="scholar2" id="scholar2Btn">
+          <span class="preset-name">4</span>
+          <span class="preset-desc">Scholar2</span>
+        </button>
+        </div>
+      </div>
       
       <div class="panel">
-        <h2>Compose</h2>
+        <h2>Visibility</h2>
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap:8px; margin-bottom:16px;">
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+            <input type="checkbox" class="show-toggle" data-target="bg" checked style="cursor:pointer;" />
+            Background
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+            <input type="checkbox" class="show-toggle" data-target="frame" checked style="cursor:pointer;" />
+            Frame
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+            <input type="checkbox" class="show-toggle" data-target="face" checked style="cursor:pointer;" />
+            Face
+          </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+            <input type="checkbox" class="show-toggle" data-target="wm" checked style="cursor:pointer;" />
+            Watermark
+          </label>
+        </div>
+      </div>
 
-
+      <div class="panel">
+        <h2>Favorite Compositions</h2>
         
-        <table class="composer-table" id="composer">
-          <thead>
-            <tr>
-              <th style="width:1%"></th>
-              <th>Category</th>
-              <th>Theme</th>
-              <th>Rarity</th>
-              <th>Show</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr data-cat="background">
-              <td style="text-align:center"><button class="apply row-rand big" title="Random"><span class="random-icon">↻</span></button></td>
-              <td>BG</td>
-              <td>
-                <select class="theme" aria-label="Background variant">
-                  <option value="1">1</option><option value="2">2</option>
-                  <option value="3">3</option><option value="4">4</option>
-                  <option value="5">5</option>
-                </select>
-              </td>
-              <td>
-                <select class="rarity">
-                  <option value="common" data-color="#9ea7b3">Common</option>
-                  <option value="rare" data-color="#2196f3">Rare</option>
-                  <option value="epic" data-color="#9c27b0">Epic</option>
-                  <option value="legendary" data-color="#ff9800">Legendary</option>
-                  <option value="ancient" data-color="#795548">Ancient</option>
-                  <option value="mystic" data-color="#e91e63">Mystic</option>
-                </select>
-              </td>
-              <td style="text-align:center"><input type="checkbox" class="show-toggle" data-target="bg" checked /></td>
-            </tr>
+        <div class="save-composition">
+          <div class="row">
+            <input type="text" id="compositionName" placeholder="Composition name..." style="flex:1; padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,.20); background:rgba(255,255,255,.08); color:#fff; font-size:12px;" />
+          </div>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button id="saveComposition" class="apply btn-accent" style="flex:1;">💾 Save</button>
+          </div>
+        </div>
 
-            <tr data-cat="frame">
-              <td style="text-align:center"><button class="apply row-rand big" title="Random"><span class="random-icon">↻</span></button></td>
-              <td>Frame</td>
-              <td>
-                <select class="theme">
-                  <option value="erudit">scholar</option>
-                  <option value="abeille" selected>bee</option>
-                  <option value="sphere">sphere</option>
-                  <option value="relic">relic</option>
-                </select>
-              </td>
-              <td>
-                <select class="rarity">
-                  <option value="common" data-color="#9ea7b3" selected>Common</option>
-                  <option value="rare" data-color="#2196f3">Rare</option>
-                  <option value="epic" data-color="#9c27b0">Epic</option>
-                  <option value="legendary" data-color="#ff9800">Legendary</option>
-                  <option value="ancient" data-color="#795548">Ancient</option>
-                  <option value="mystic" data-color="#e91e63">Mystic</option>
-                </select>
-              </td>
-              <td style="text-align:center"><input type="checkbox" class="show-toggle" data-target="frame" checked /></td>
-            </tr>
-
-            <tr data-cat="face">
-              <td style="text-align:center"><button class="apply row-rand big" title="Random"><span class="random-icon">↻</span></button></td>
-              <td>Face</td>
-              <td>
-                <select class="theme">
-                  <option value="erudit">scholar</option>
-                  <option value="abeille">bee</option>
-                  <option value="sphere">sphere</option>
-                  <option value="relic">relic</option>
-                </select>
-              </td>
-              <td>
-                <select class="rarity">
-                  <option value="common" data-color="#9ea7b3">Common</option>
-                  <option value="rare" data-color="#2196f3">Rare</option>
-                  <option value="epic" data-color="#9c27b0">Epic</option>
-                  <option value="legendary" data-color="#ff9800">Legendary</option>
-                  <option value="ancient" data-color="#795548">Ancient</option>
-                  <option value="mystic" data-color="#e91e63">Mystic</option>
-                </select>
-              </td>
-              <td style="text-align:center"><input type="checkbox" class="show-toggle" data-target="face" checked /></td>
-            </tr>
-
-            <tr data-cat="watermark">
-              <td style="text-align:center"><button class="apply row-rand big" title="Random"><span class="random-icon">↻</span></button></td>
-              <td>WM</td>
-              <td>
-                <select class="theme">
-                  <option value="erudit">scholar</option>
-                  <option value="abeille">bee</option>
-                  <option value="sphere">sphere</option>
-                  <option value="relic">relic</option>
-                </select>
-              </td>
-              <td>
-                <select class="rarity">
-                  <option value="common" data-color="#9ea7b3">Common</option>
-                  <option value="rare" data-color="#2196f3">Rare</option>
-                  <option value="epic" data-color="#9c27b0">Epic</option>
-                  <option value="legendary" data-color="#ff9800">Legendary</option>
-                  <option value="ancient" data-color="#795548">Ancient</option>
-                  <option value="mystic" data-color="#e91e63">Mystic</option>
-                </select>
-              </td>
-              <td style="text-align:center"><input type="checkbox" class="show-toggle" data-target="wm" checked /></td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="favorites-list" id="favoritesList" style="margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; max-height:300px; overflow-y:auto;">
+          <!-- Saved compositions will appear here -->
+        </div>
       </div>
 
       <div class="panel" id="personalize">
@@ -208,6 +182,16 @@
         <div class="fold-body">
           <div class="panel">
             <h3>Transform</h3>
+            <div class="row" id="eruditToggleRow" style="display: none;">
+              <label for="eruditStyleToggle">Erudit Style:</label>
+              <div class="toggle-container">
+                <input type="checkbox" id="eruditStyleToggle" class="toggle-input">
+                <label for="eruditStyleToggle" class="toggle-label">
+                  <span class="toggle-text">Default</span>
+                  <span class="toggle-text">Scholar</span>
+                </label>
+              </div>
+            </div>
             <div class="row">
               <label for="transformTarget">Target</label>
               <select id="transformTarget">
@@ -219,13 +203,41 @@
             </div>
             <div class="row">
               <label for="transformScale">Scale</label>
-              <input id="transformScale" type="range" min="0.25" max="3" step="0.01" value="1" />
+              <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                <input id="transformScale" type="range" min="0.1" max="10" step="0.1" value="1" style="flex:1;" />
+                <span id="transformScaleValue" style="min-width:40px; text-align:right; font-size:11px; font-family:monospace;">1.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="transformOffsetX">Offset X</label>
+              <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                <input id="transformOffsetX" type="range" min="-300" max="300" step="1" value="0" style="flex:1;" />
+                <span id="transformOffsetXValue" style="min-width:40px; text-align:right; font-size:11px; font-family:monospace;">0</span>
+              </div>
             </div>
             <div class="row">
               <label for="transformOffsetY">Offset Y</label>
-              <input id="transformOffsetY" type="range" min="-300" max="300" step="1" value="0" />
+              <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                <input id="transformOffsetY" type="range" min="-300" max="300" step="1" value="0" style="flex:1;" />
+                <span id="transformOffsetYValue" style="min-width:40px; text-align:right; font-size:11px; font-family:monospace;">0</span>
+              </div>
             </div>
-            <div class="row" style="justify-content:flex-end">
+            <div class="row">
+              <label for="transformOpacity">Opacity</label>
+              <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                <input id="transformOpacity" type="range" min="0" max="1" step="0.01" value="1" style="flex:1;" />
+                <span id="transformOpacityValue" style="min-width:40px; text-align:right; font-size:11px; font-family:monospace;">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="transformBrightness">Brightness</label>
+              <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                <input id="transformBrightness" type="range" min="0" max="2" step="0.01" value="1" style="flex:1;" />
+                <span id="transformBrightnessValue" style="min-width:40px; text-align:right; font-size:11px; font-family:monospace;">1.00</span>
+              </div>
+            </div>
+            <div class="row" style="justify-content:space-between">
+              <button id="saveTransform" class="apply btn-accent">💾 Save</button>
               <button id="transformReset" class="apply">Reset</button>
             </div>
           </div>
@@ -252,7 +264,7 @@
     </aside>
   </main>
 
-  <noscript>Activez JavaScript pour voir les effets.</noscript>
+  <noscript>Enable JavaScript to see the effects.</noscript>
   <script src="./app.js"></script>
 </body>
 </html>

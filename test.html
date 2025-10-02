@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test TrustCard</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #1a1a1a; 
+            color: white; 
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #333; 
+            border-radius: 8px; 
+        }
+        button { 
+            padding: 10px 15px; 
+            margin: 5px; 
+            background: #4ea1ff; 
+            color: white; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        button:hover { background: #3a8bdf; }
+        .status { 
+            margin: 10px 0; 
+            padding: 10px; 
+            background: #333; 
+            border-radius: 5px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Test TrustCard Debug</h1>
+    
+    <div class="test-section">
+        <h3>1. Test des éléments HTML</h3>
+        <div id="html-test" class="status">Vérification...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>2. Test des filtres</h3>
+        <button onclick="testFilters()">Tester les filtres</button>
+        <div id="filter-test" class="status">En attente...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>3. Test de sauvegarde</h3>
+        <button onclick="testSave()">Tester la sauvegarde</button>
+        <div id="save-test" class="status">En attente...</div>
+    </div>
+    
+    <div class="test-section">
+        <h3>4. Test du bouton Random</h3>
+        <button onclick="testRandom()">Tester Random</button>
+        <div id="random-test" class="status">En attente...</div>
+    </div>
+
+    <script>
+        function testHTML() {
+            const elements = [
+                'allThumbs',
+                'compositionName', 
+                'saveComposition',
+                'randomizeBtn',
+                '.filter-btn',
+                '.drop-zone'
+            ];
+            
+            let results = [];
+            elements.forEach(selector => {
+                const el = selector.startsWith('.') ? 
+                    document.querySelector(selector) : 
+                    document.getElementById(selector);
+                results.push(`${selector}: ${el ? '✓' : '✗'}`);
+            });
+            
+            document.getElementById('html-test').innerHTML = results.join('<br>');
+        }
+        
+        function testFilters() {
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const result = `Boutons de filtre trouvés: ${filterBtns.length}`;
+            document.getElementById('filter-test').innerHTML = result;
+        }
+        
+        function testSave() {
+            const saveBtn = document.getElementById('saveComposition');
+            const input = document.getElementById('compositionName');
+            const result = `Bouton sauvegarde: ${saveBtn ? '✓' : '✗'}<br>Input nom: ${input ? '✓' : '✗'}`;
+            document.getElementById('save-test').innerHTML = result;
+        }
+        
+        function testRandom() {
+            const randomBtn = document.getElementById('randomizeBtn');
+            const result = `Bouton random: ${randomBtn ? '✓' : '✗'}`;
+            document.getElementById('random-test').innerHTML = result;
+        }
+        
+        // Run tests when page loads
+        window.addEventListener('load', () => {
+            setTimeout(testHTML, 100);
+        });
+    </script>
+</body>
+</html>
