@@ -23,6 +23,9 @@
         <label class="btn file-btn">Watermark
           <input id="wmInput" type="file" accept="image/*" hidden />
         </label>
+        <label class="btn file-btn">Watermark 2
+          <input id="wm2Input" type="file" accept="image/*" hidden />
+        </label>
         <label class="btn file-btn">Frame
           <input id="frameInput" type="file" accept="image/*" hidden />
         </label>
@@ -80,6 +83,10 @@
             <span class="drop-zone-label">WM</span>
             <span class="drop-zone-clear" title="Clear">✕</span>
           </div>
+          <div class="drop-zone" data-target="wm2Img"   title="Watermark 2">
+            <span class="drop-zone-label">WM2</span>
+            <span class="drop-zone-clear" title="Clear">✕</span>
+          </div>
           <div class="drop-zone" data-target="frameImg" title="Frame">
             <span class="drop-zone-label">Frame</span>
             <span class="drop-zone-clear" title="Clear">✕</span>
@@ -94,6 +101,7 @@
         <img id="bgImg"   class="bg-img"   src="./assets/catalog/background/common/common4.svg" alt="background" />
         <img id="faceImg" class="card-img" src="./assets/catalog/face/erudit/common.svg" alt="face" />
         <img id="wmImg"   class="wm-img"   src="./assets/catalog/watermark/erudit/common.svg" alt="filigrane" />
+        <img id="wm2Img"   class="wm-img wm2-img is-empty"   src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==" alt="filigrane 2" />
 
         <div class="glare" aria-hidden="true"></div>
         <img id="frameImg" class="frame-img" src="./assets/catalog/frame/erudit/common.svg" alt="frame" />
@@ -157,6 +165,10 @@
             <input type="checkbox" class="show-toggle" data-target="wm" checked style="cursor:pointer;" />
             Watermark
           </label>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
+            <input type="checkbox" class="show-toggle" data-target="wm2" checked style="cursor:pointer;" />
+            Watermark 2
+          </label>
         </div>
       </div>
 
@@ -198,6 +210,7 @@
                 <option value="bg">Background</option>
                 <option value="face">Face</option>
                 <option value="wm">Watermark</option>
+                <option value="wm2">Watermark 2</option>
                 <option value="frame">Frame</option>
               </select>
             </div>

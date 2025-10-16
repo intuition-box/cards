@@ -10,6 +10,7 @@ const card = document.getElementById("card");
 const bgImg = document.getElementById("bgImg");
 const faceImg = document.getElementById("faceImg");
 const wmImg = document.getElementById("wmImg");
+const wm2Img = document.getElementById("wm2Img");
 const frameImg = document.getElementById("frameImg");
 const glare = document.querySelector(".glare");
 const avatarImg = document.getElementById("avatarImg");
@@ -21,6 +22,7 @@ const infoGrid = document.getElementById("infoGrid");
 const bgInput = document.getElementById("bgInput");
 const faceInput = document.getElementById("faceInput");
 const wmInput = document.getElementById("wmInput");
+const wm2Input = document.getElementById("wm2Input");
 const frameInput = document.getElementById("frameInput");
 const avatarInput = document.getElementById("avatarInput");
 const blendSelect = document.getElementById("blend");
@@ -41,9 +43,19 @@ function isTargetShown(target) {
   return cb ? !!cb.checked : true;
 }
 
+// Ensure a target is visible (check its toggle and re-apply visibility)
+function ensureShown(target){
+  const cb = getShowToggleFor(target);
+  if (cb && !cb.checked) {
+    cb.checked = true;
+    applyComposerVisibility?.();
+  }
+}
+
 function setBlend(mode) {
   if (!wmImg) return;
   wmImg.style.mixBlendMode = mode;
+  if (wm2Img) wm2Img.style.mixBlendMode = mode;
 }
 
 function pick(arr) {
@@ -66,12 +78,21 @@ function tiltFromEvent(e) {
     if (wmOverlayImg) wmOverlayImg.style.opacity = op;
     
   }
+  if (isTargetShown('wm2') && wm2Img) {
+    const op2 = (0.08 + mag * 0.75).toFixed(3);
+    wm2Img.style.opacity = op2;
+  }
 
   const px = ((cx / rect.width) - 0.5) * -12;
   const py = ((cy / rect.height) - 0.5) * -12;
   const wmScale = transformState.wm.scale || 1;
   const wmOffsetY = transformState.wm.y || 0;
   wmImg.style.transform = `translate3d(${px}px, ${py + wmOffsetY}px, 0) scale(${wmScale * 1.03})`;
+  if (wm2Img) {
+    const wm2Scale = transformState.wm2?.scale || 1;
+    const wm2OffsetY = transformState.wm2?.y || 0;
+    wm2Img.style.transform = `translate3d(${px}px, ${py + wm2OffsetY}px, 0) scale(${wm2Scale * 1.03})`;
+  }
 
   const pointerX = `${(cx / rect.width) * 100}%`;
   const pointerY = `${(cy / rect.height) * 100}%`;
@@ -92,6 +113,14 @@ function tiltLeave() {
   const wmScale = transformState.wm.scale || 1;
   const wmOffsetY = transformState.wm.y || 0;
   wmImg.style.transform = `translate3d(0,${wmOffsetY}px,0) scale(${wmScale * 1.02})`;
+  if (isTargetShown('wm2') && wm2Img) {
+    wm2Img.style.opacity = "0";
+  }
+  if (wm2Img) {
+    const wm2Scale = transformState.wm2?.scale || 1;
+    const wm2OffsetY = transformState.wm2?.y || 0;
+    wm2Img.style.transform = `translate3d(0,${wm2OffsetY}px,0) scale(${wm2Scale * 1.02})`;
+  }
   if (wmOverlayImg){
     wmOverlayImg.style.setProperty('--background-x', '50%');
     wmOverlayImg.style.setProperty('--background-y', '50%');
@@ -124,6 +153,9 @@ card.addEventListener("touchend", tiltLeave);
 if (blendSelect) blendSelect.addEventListener("change", (e) => setBlend(e.target.value));
 if (forceInput)  forceInput.addEventListener("input", (e) => { damp = +e.target.value; });
 setBlend(blendSelect ? blendSelect.value : 'screen');
+
+// File inputs for second watermark
+if (wm2Input && wm2Img) wm2Input.addEventListener("change",    () => { fileToEl(wm2Input, wm2Img); ensureShown('wm2'); });
 
 document.addEventListener("dragover", (e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = "copy"; });
 document.addEventListener("drop", (e) => { e.preventDefault(); });
@@ -169,6 +201,7 @@ if (allThumbsContainer) {
         if (targetId === 'faceImg') {
           checkAndUpdateEruditToggle();
         }
+        if (targetId === 'wm2Img') ensureShown('wm2');
       } else {
         return;
       }
@@ -220,17 +253,29 @@ function appendCatalogThumbs(){
   
   themes.forEach(t => rarities.forEach(r => {
     const srcSvg = `./assets/catalog/watermark/${t}/${r}.svg`;
-    const el = document.createElement('img');
-    el.loading = 'lazy';
-    el.decoding = 'async';
-    el.src = srcSvg;
-    el.className = 'thumb';
-    el.dataset.category = 'watermark';
-    el.dataset.rarity = r;
-    el.dataset.target = 'wmImg';
-    el.alt = `wm-${t}-${r}`;
-    container.appendChild(el);
-    makeThumbDraggable(el);
+    const el1 = document.createElement('img');
+    el1.loading = 'lazy';
+    el1.decoding = 'async';
+    el1.src = srcSvg;
+    el1.className = 'thumb';
+    el1.dataset.category = 'watermark';
+    el1.dataset.rarity = r;
+    el1.dataset.target = 'wmImg';
+    el1.alt = `wm-${t}-${r}`;
+    container.appendChild(el1);
+    makeThumbDraggable(el1);
+
+    const el2 = document.createElement('img');
+    el2.loading = 'lazy';
+    el2.decoding = 'async';
+    el2.src = srcSvg;
+    el2.className = 'thumb';
+    el2.dataset.category = 'watermark';
+    el2.dataset.rarity = r;
+    el2.dataset.target = 'wm2Img';
+    el2.alt = `wm2-${t}-${r}`;
+    container.appendChild(el2);
+    makeThumbDraggable(el2);
   }));
   
   themes.forEach(t => rarities.filter(r => r !== 'mystic').forEach(r => {
@@ -307,7 +352,7 @@ window.addEventListener('load', () => {
           initializePresets();
           applyPreset('scholar');
           renderFavorites();
-          updateThumbUsageMarkers();
+          resetDropZonesUI();
           console.log('All systems initialized');
         }, 100);
 });
@@ -361,6 +406,7 @@ const transformState = {
   bg: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
   face: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
   wm: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
+  wm2: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
   frame: { scale: 1, x: 0, y: 0, opacity: 1, brightness: 1 },
 };
 
@@ -372,6 +418,9 @@ function applyTransformState() {
   faceImg.style.transform = `scale(${transformState.face.scale}) translate(${transformState.face.x}px, ${transformState.face.y}px)`;
   frameImg.style.transform = `scale(${transformState.frame.scale}) translate(${transformState.frame.x}px, ${transformState.frame.y}px)`;
   wmImg.style.transform = `translate3d(${transformState.wm.x}px,${transformState.wm.y}px,0) scale(${transformState.wm.scale.toFixed(3)})`;
+  if (wm2Img) {
+    wm2Img.style.transform = `translate3d(${transformState.wm2.x}px,${transformState.wm2.y}px,0) scale(${(transformState.wm2.scale || 1).toFixed(3)})`;
+  }
   
   // Apply watermark properties
   wmImg.style.setProperty('--wm-scale', transformState.wm.scale);
@@ -388,6 +437,10 @@ function applyTransformState() {
   frameImg.style.filter = `brightness(${transformState.frame.brightness})`;
   
   wmImg.style.filter = `brightness(${transformState.wm.brightness})`;
+  if (wm2Img) {
+    wm2Img.style.filter = `brightness(${transformState.wm2.brightness})`;
+    wm2Img.style.opacity = transformState.wm2.opacity;
+  }
   
   if (wmOverlayImg) {
     wmOverlayImg.style.transform = wmImg.style.transform;
@@ -661,6 +714,7 @@ function fileToTarget(file, imgEl) {
 bgInput.addEventListener("change",    () => fileToEl(bgInput, bgImg));
 faceInput.addEventListener("change",  () => fileToEl(faceInput, faceImg));
 wmInput.addEventListener("change",    () => fileToEl(wmInput, wmImg));
+if (wm2Input && wm2Img) wm2Input.addEventListener("change", () => fileToEl(wm2Input, wm2Img));
 frameInput.addEventListener("change", () => fileToEl(frameInput, frameImg));
 avatarInput.addEventListener("change",() => fileToEl(avatarInput, avatarImg));
 
@@ -702,12 +756,9 @@ function clearDropZone(target) {
   const imgEl = document.getElementById(target);
   if (!imgEl) return;
   
-  if (target === 'faceImg') {
-    imgEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==';
-    imgEl.classList.add('is-empty');
-  } else {
-    imgEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==';
-  }
+  // Ne pas masquer: juste réinitialiser la source à vide et retirer tout état "is-empty"
+  imgEl.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==';
+  imgEl.classList.remove('is-empty');
   
   // Update thumb usage markers
   updateThumbUsageMarkers();
@@ -758,7 +809,7 @@ function setupImageDropTarget(imgEl){
   imgEl.addEventListener("drop",      drop);
 }
 
-[bgImg, faceImg, wmImg, frameImg].forEach(setupImageDropTarget);
+[bgImg, faceImg, wmImg, wm2Img, frameImg].filter(Boolean).forEach(setupImageDropTarget);
 
 function updateThumbUsageMarkers(){
   const thumbs = Array.from(document.querySelectorAll('.thumbs .thumb'));
@@ -775,10 +826,11 @@ function updateThumbUsageMarkers(){
   markFor(bgImg, 'used-bg');
   markFor(faceImg, 'used-face');
   markFor(wmImg, 'used-wm');
+  if (wm2Img) markFor(wm2Img, 'used-wm');
   markFor(frameImg, 'used-frame');
   
 
-  document.querySelectorAll('.drop-zone').forEach(zone => zone.classList.remove('has-bg','has-face','has-wm','has-frame'));
+  document.querySelectorAll('.drop-zone').forEach(zone => zone.classList.remove('has-bg','has-face','has-wm','has-wm2','has-frame'));
   const setZone = (id, cls, el) => {
     const zone = document.querySelector(`.drop-zone[data-target="${id}"]`);
     if (!zone) return;
@@ -788,12 +840,20 @@ function updateThumbUsageMarkers(){
   setZone('bgImg','has-bg', bgImg);
   setZone('faceImg','has-face', faceImg);
   setZone('wmImg','has-wm', wmImg);
+  if (wm2Img) setZone('wm2Img','has-wm2', wm2Img);
   setZone('frameImg','has-frame', frameImg);
   
 
 }
 
 // updateThumbUsageMarkers now called in main load event
+
+// Réinitialise l'état visuel des zones de drop (ne touche pas aux images)
+function resetDropZonesUI(){
+  document.querySelectorAll('.drop-zone').forEach(zone => {
+    zone.classList.remove('has-bg','has-face','has-wm','has-wm2','has-frame');
+  });
+}
 
 function parseCatalogPath(src){
   try{
@@ -1105,6 +1165,7 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
       if (targetId === 'faceImg') {
         checkAndUpdateEruditToggle();
       }
+      if (targetId === 'wm2Img') ensureShown('wm2');
       return; 
     }
     const url = dt?.getData('text/uri-list') || dt?.getData('text/plain');
@@ -1115,6 +1176,22 @@ document.querySelectorAll('.drop-zone').forEach(zone => {
       if (targetId === 'faceImg') {
         checkAndUpdateEruditToggle();
       }
+      if (targetId === 'wm2Img') ensureShown('wm2');
+    } else if (category === 'watermark2') {
+      if (!wm2Img) return;
+      wm2Img.src = url;
+      wm2Img.classList.remove('is-empty');
+      wm2Img.style.filter = `brightness(1.12) saturate(1.06) contrast(0.98)`;
+      if (wm2Img.src.includes('/erudit/')) {
+        transformState.wm2.y = 98;
+        transformState.wm2.brightness = 1.81;
+        applyTransformState();
+      } else if (wm2Img.src.includes('/sphere/')) {
+        transformState.wm2.y = 0;
+        transformState.wm2.brightness = 1;
+        applyTransformState();
+      }
+      ensureShown('wm2');
     }
   };
   zone.addEventListener('dragenter', enter);
@@ -1127,10 +1204,12 @@ function applyComposerVisibility(){
   bgImg.classList.toggle("hidden",    !isTargetShown('bg'));
   faceImg.classList.toggle("hidden",  !isTargetShown('face'));
   wmImg.classList.toggle("hidden",    !isTargetShown('wm'));
+  if (wm2Img) wm2Img.classList.toggle("hidden",    !isTargetShown('wm2'));
   frameImg.classList.toggle("hidden", !isTargetShown('frame'));
   avatarPanel?.classList.remove("hidden");
   infoPanel?.classList.remove("hidden");
   if (!isTargetShown('wm')) wmImg.style.opacity = "0";
+  if (wm2Img && !isTargetShown('wm2')) wm2Img.style.opacity = "0";
   if (wmOverlayImg) wmOverlayImg.classList.toggle("hidden", !isTargetShown('wm'));
 }
 document.querySelectorAll('.show-toggle').forEach(cb => {
@@ -1203,6 +1282,8 @@ function randomizeAll() {
       applyTransformState();
     }
   });
+
+  // Laisser WM2 vide par défaut: ne pas randomizer wm2
   
   updateThumbUsageMarkers();
 }
@@ -1245,6 +1326,7 @@ function getCurrentComposition() {
     bgSrc: bgImg.src,
     faceSrc: faceImg.src,
     wmSrc: wmImg.src,
+    wm2Src: wm2Img?.src,
     frameSrc: frameImg.src,
     avatarSrc: avatarImg.src,
     timestamp: Date.now()
@@ -1255,6 +1337,7 @@ function loadComposition(comp) {
   if (comp.bgSrc) bgImg.src = comp.bgSrc;
   if (comp.faceSrc) faceImg.src = comp.faceSrc;
   if (comp.wmSrc) wmImg.src = comp.wmSrc;
+  if (comp.wm2Src && wm2Img) wm2Img.src = comp.wm2Src;
   if (comp.frameSrc) frameImg.src = comp.frameSrc;
   if (comp.avatarSrc) avatarImg.src = comp.avatarSrc;
   updateThumbUsageMarkers();
