@@ -8,7 +8,7 @@
   <meta name="color-scheme" content="dark light" />
 
   <!-- Preload core assets for faster first paint -->
-  <link rel="preload" href="./public/" as="image">
+  <link rel="preload" href="./public/assets/catalog/background/common/common4.svg" as="image">
   <link rel="preload" href="./public/assets/catalog/face/erudit/common.svg" as="image">
   <link rel="preload" href="./public/assets/catalog/watermark/erudit/common.svg" as="image">
   <link rel="preload" href="./public/assets/catalog/frame/erudit/common.svg" as="image">
@@ -116,18 +116,18 @@
     <!-- Main Stage -->
     <section class="stage" aria-label="Card stage">
       <div class="card" id="card" data-tilt>
-        <img id="bgImg"   class="bg-img"   src="/assets/catalog/background/common/common4.svg" alt="background" fetchpriority="high" decoding="async" />
-        <img id="faceImg" class="card-img" src="/assets/catalog/face/erudit/common.svg" alt="face" decoding="async" />
-        <img id="wmImg"   class="wm-img"   src="/assets/catalog/watermark/erudit/common.svg" alt="filigrane" decoding="async" />
+        <img id="bgImg"   class="bg-img"   src="./public/assets/catalog/background/common/common4.svg" alt="background" fetchpriority="high" decoding="async" />
+        <img id="faceImg" class="card-img" src="./public/assets/catalog/face/erudit/common.svg" alt="face" decoding="async" />
+        <img id="wmImg"   class="wm-img"   src="./public/assets/catalog/watermark/erudit/common.svg" alt="filigrane" decoding="async" />
         <img id="wm2Img"  class="wm-img wm2-img is-empty" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAn8B9p1pOQAAAABJRU5ErkJggg==" alt="filigrane 2" loading="lazy" decoding="async" />
 
         <div class="glare" aria-hidden="true"></div>
-        <img id="frameImg" class="frame-img" src="/assets/catalog/frame/erudit/common.svg" alt="frame" />
+        <img id="frameImg" class="frame-img" src="./public/assets/catalog/frame/erudit/common.svg" alt="frame" />
 
         <div class="liquid-frame">
           <div class="avatar-panel" id="avatarPanel">
             <div class="avatar-ring"></div>
-            <img id="avatarImg" src="/assets/avatars/avatar.jpg" alt="avatar" loading="lazy" decoding="async" />
+            <img id="avatarImg" src="./public/assets/avatars/avatar.jpg" alt="avatar" loading="lazy" decoding="async" />
           </div>
           <div class="info-panel" id="infoPanel">
             <div class="info-grid" id="infoGrid"></div>
@@ -297,6 +297,6 @@
     </div>
   </div>
 
-  <script src="/src/app.js" defer></script>
+  <script src="./src/app.js" defer></script>
 </body>
 </html>

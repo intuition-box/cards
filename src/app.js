@@ -210,10 +210,10 @@ function appendCatalogThumbs(){
   // Backgrounds: try multiple filename patterns and formats (svg/png)
   const addBgIndexed = (r, idx) => {
     const candidates = [
-      `/assets/catalog/background/${r}/${r}${idx}.svg`,
-      `/assets/catalog/background/${r}/${r}${idx}.png`,
-      `/assets/catalog/background/${r}/${r}${idx}.jpg`,
-      `/assets/catalog/background/${r}/${r}${idx}.jpeg`,
+      `./public/assets/catalog/background/${r}/${r}${idx}.svg`,
+      `./public/assets/catalog/background/${r}/${r}${idx}.png`,
+      `./public/assets/catalog/background/${r}/${r}${idx}.jpg`,
+      `./public/assets/catalog/background/${r}/${r}${idx}.jpeg`,
     ];
     addFirstExistingThumb(candidates, { category:'background', rarity:r, target:'bgImg', alt:`bg-${r}-${idx}` });
   };
@@ -225,23 +225,23 @@ function appendCatalogThumbs(){
   };
 
   rarities.filter(r=>r!=='mystic').forEach(r=> bgIndexes.forEach(idx=> addBgIndexed(r, idx)));
-  ['mystic1.jpg','mystic4.svg'].forEach((file,i)=> addThumb({ src:`/assets/catalog/background/mystic/${file}`, category:'background', rarity:'mystic', target:'bgImg', alt:`bg-mystic-${i+1}`}));
-  themes.forEach(t=> rarities.forEach(r=> addThumb({ src:`/assets/catalog/watermark/${t}/${r}.svg`, category:'watermark', rarity:r, target:'wmImg', alt:`wm-${t}-${r}`})));
+  ['mystic1.jpg','mystic4.svg'].forEach((file,i)=> addThumb({ src:`./public/assets/catalog/background/mystic/${file}`, category:'background', rarity:'mystic', target:'bgImg', alt:`bg-mystic-${i+1}`}));
+  themes.forEach(t=> rarities.forEach(r=> addThumb({ src:`./public/assets/catalog/watermark/${t}/${r}.svg`, category:'watermark', rarity:r, target:'wmImg', alt:`wm-${t}-${r}`})));
   themes.forEach(t=> rarities.filter(r=> r!=='mystic').forEach(r=>{
-    addThumb({ src:`/assets/catalog/face/${t}/${r}.svg`, category:'face', rarity:r, target:'faceImg', alt:`face-${t}-${r}` });
-    if (t==='erudit') addThumb({ src:`/assets/catalog/face/${t}/${r}1.svg`, category:'face', rarity:r, target:'faceImg', alt:`face-${t}-${r}1` });
+    addThumb({ src:`./public/assets/catalog/face/${t}/${r}.svg`, category:'face', rarity:r, target:'faceImg', alt:`face-${t}-${r}` });
+    if (t==='erudit') addThumb({ src:`./public/assets/catalog/face/${t}/${r}1.svg`, category:'face', rarity:r, target:'faceImg', alt:`face-${t}-${r}1` });
   }));
-  themes.forEach(t=> rarities.forEach(r=> addThumb({ src:`/assets/catalog/frame/${t}/${r}.svg`, category:'frame', rarity:r, target:'frameImg', alt:`frame-${t}-${r}`})));
+  themes.forEach(t=> rarities.forEach(r=> addThumb({ src:`./public/assets/catalog/frame/${t}/${r}.svg`, category:'frame', rarity:r, target:'frameImg', alt:`frame-${t}-${r}`})));
 
   // Extra backgrounds (added directly under background folders): img11..img14
   const extraIdx = [11,12,13,14];
   const bgExts = ['png','jpg','jpeg','svg','webp'];
   rarities.forEach(r => extraIdx.forEach(n => bgExts.forEach(ext => {
-    addThumb({ src:`/assets/catalog/background/${r}/img${n}.${ext}`, category:'background', rarity:r, target:'bgImg', alt:`bg-${r}-img${n}` });
+    addThumb({ src:`./public/assets/catalog/background/${r}/img${n}.${ext}`, category:'background', rarity:r, target:'bgImg', alt:`bg-${r}-img${n}` });
   })));
 
   // Public images (user-provided)
-  const PUBLIC_PREFIX = '/assets/images/';
+  const PUBLIC_PREFIX = './public/assets/images/';
   const exts = ['png','jpg','jpeg','svg','webp'];
   const max = 50; // reasonable upper bound to avoid too many probes
   for (let i = 1; i <= max; i++) {
@@ -396,19 +396,19 @@ function syncComposerFromImageSrc(imgEl, src){ const meta = parseCatalogPath(src
 // ==========================
 function buildAssetPathCandidates(category, theme, rarity){
   const list=[];
-  if (category==='background' && rarity==='mystic') return ['/assets/catalog/background/mystic/mystic1.jpg','/assets/catalog/background/mystic/mystic4.svg'];
+  if (category==='background' && rarity==='mystic') return ['./public/assets/catalog/background/mystic/mystic1.jpg','./public/assets/catalog/background/mystic/mystic4.svg'];
   if (category==='background' && /^\d+$/.test(String(theme))){ const idx=String(theme); return [
-    `/assets/catalog/background/${rarity}/${idx}.png`,
-    `/assets/catalog/background/${rarity}/${idx}.svg`,
-    `/assets/catalog/background/${rarity}/${idx}.jpg`,
-    `/assets/catalog/background/${rarity}/${idx}.jpeg`,
-    `/assets/catalog/background/${rarity}/${rarity}${idx}.png`,
-    `/assets/catalog/background/${rarity}/${rarity}${idx}.svg`,
-    `/assets/catalog/background/${rarity}/${rarity}${idx}.jpg`,
-    `/assets/catalog/background/${rarity}/${rarity}${idx}.jpeg`,
+    `./public/assets/catalog/background/${rarity}/${idx}.png`,
+    `./public/assets/catalog/background/${rarity}/${idx}.svg`,
+    `./public/assets/catalog/background/${rarity}/${idx}.jpg`,
+    `./public/assets/catalog/background/${rarity}/${idx}.jpeg`,
+    `./public/assets/catalog/background/${rarity}/${rarity}${idx}.png`,
+    `./public/assets/catalog/background/${rarity}/${rarity}${idx}.svg`,
+    `./public/assets/catalog/background/${rarity}/${rarity}${idx}.jpg`,
+    `./public/assets/catalog/background/${rarity}/${rarity}${idx}.jpeg`,
   ]; }
-  list.push(`/assets/catalog/${category}/${theme}/${rarity}.png`,`/assets/catalog/${category}/${theme}/${rarity}.svg`);
-  if (category==='face' && String(theme)==='erudit') list.push(`/assets/catalog/${category}/${theme}/${rarity}1.png`,`/assets/catalog/${category}/${theme}/${rarity}1.svg`);
+  list.push(`./public/assets/catalog/${category}/${theme}/${rarity}.png`,`./public/assets/catalog/${category}/${theme}/${rarity}.svg`);
+  if (category==='face' && String(theme)==='erudit') list.push(`./public/assets/catalog/${category}/${theme}/${rarity}1.png`,`./public/assets/catalog/${category}/${theme}/${rarity}1.svg`);
   return list;
 }
 function tryLoadRandomImage(candidates, targetImg, onLoad=null, shuffle=false){
@@ -527,14 +527,14 @@ function initializeSaveButton(){ const btn=$("saveComposition"); if (!btn) retur
 // Presets (programmatic generation; EXACT paths preserved by rules)
 // ==========================
 const THEME_BG_INDEX = { erudit: 4, abeille: 2, sphere: 4 };
-const MYSTIC_BG = { erudit:'/assets/catalog/background/mystic/mystic4.svg', abeille:'/assets/catalog/background/mystic/mystic1.jpg', sphere:'/assets/catalog/background/mystic/mystic4.svg' };
+const MYSTIC_BG = { erudit:'./public/assets/catalog/background/mystic/mystic4.svg', abeille:'./public/assets/catalog/background/mystic/mystic1.jpg', sphere:'./public/assets/catalog/background/mystic/mystic4.svg' };
 function baseTransforms(){ return { bg:{scale:1,x:0,y:0,opacity:1,brightness:1}, face:{scale:1,x:0,y:0,opacity:1,brightness:1}, wm:{scale:1,x:0,y:0,opacity:1,brightness:1}, frame:{scale:1,x:0,y:0,opacity:1,brightness:1} }; }
 function makeThemePresets(theme){
   const idx = THEME_BG_INDEX[theme] || 4;
-  const mkBg=(r)=> r==='mystic' ? MYSTIC_BG[theme] : `/assets/catalog/background/${r}/${r}${idx}.svg`;
-  const mkFace=(r)=> `/assets/catalog/face/${theme}/${r}.svg`;
-  const mkFrame=(r)=> `/assets/catalog/frame/${theme}/${r}.svg`;
-  const mkWM=(r)=> `/assets/catalog/watermark/${theme}/${r}.svg`;
+  const mkBg=(r)=> r==='mystic' ? MYSTIC_BG[theme] : `./public/assets/catalog/background/${r}/${r}${idx}.svg`;
+  const mkFace=(r)=> `./public/assets/catalog/face/${theme}/${r}.svg`;
+  const mkFrame=(r)=> `./public/assets/catalog/frame/${theme}/${r}.svg`;
+  const mkWM=(r)=> `./public/assets/catalog/watermark/${theme}/${r}.svg`;
   const out={};
   RARITIES.forEach(r=>{
     const t = baseTransforms();
@@ -554,9 +554,9 @@ function makeErudit2(){
     const t = baseTransforms(); t.wm.y = -9;
     out[r] = {
       background: '',
-      face: `/assets/catalog/watermark/sphere/${r}.svg`,
-      frame:`/assets/catalog/frame/sphere/${r}.svg`,
-      watermark:`/assets/catalog/face/erudit/${r}.svg`,
+      face: `./public/assets/catalog/watermark/sphere/${r}.svg`,
+      frame:`./public/assets/catalog/frame/sphere/${r}.svg`,
+      watermark:`./public/assets/catalog/face/erudit/${r}.svg`,
       transforms: t
     };
   });
@@ -597,7 +597,7 @@ function initializePresets(){ document.querySelectorAll('.preset-btn').forEach(b
 // ==========================
 window.addEventListener('load', ()=>{
   if (DEBUG) console.log('Page loaded, initializing...');
-  const critical = [ '/assets/catalog/background/common/common4.svg', '/assets/catalog/face/erudit/common.svg', '/assets/catalog/watermark/erudit/common.svg', '/assets/catalog/frame/erudit/common.svg' ];
+  const critical = [ './public/assets/catalog/background/common/common4.svg', './public/assets/catalog/face/erudit/common.svg', './public/assets/catalog/watermark/erudit/common.svg', './public/assets/catalog/frame/erudit/common.svg' ];
   Promise.all(critical.map(src=> new Promise(res=>{ const i=new Image(); i.onload=res; i.onerror=res; i.src=src; }))).then(()=>{
     appendCatalogThumbs(); domCache.clearCache(); requestAnimationFrame(()=>{
       initializeFilters(); initializeSaveButton(); initializePresets(); initGenerator(); updateAllPresetButtonLabels(); applyPreset('erudit'); renderFavorites(); resetDropZonesUI(); if (DEBUG) console.log('All systems initialized');
@@ -895,11 +895,11 @@ function initGenerator(){
     const bgIndex = pick(BG_INDEXES);
 
     const background = r === "mystic"
-      ? `/assets/catalog/background/mystic/mystic4.svg`
-      : `/assets/catalog/background/${r}/${r}${bgIndex}.svg`;
-    const face = `/assets/catalog/face/${t}/${r}.svg`;
-    const wm = `/assets/catalog/watermark/${t}/${r}.svg`;
-    const frame = `/assets/catalog/frame/${t}/${r}.svg`;
+      ? `./public/assets/catalog/background/mystic/mystic4.svg`
+      : `./public/assets/catalog/background/${r}/${r}${bgIndex}.svg`;
+    const face = `./public/assets/catalog/face/${t}/${r}.svg`;
+    const wm = `./public/assets/catalog/watermark/${t}/${r}.svg`;
+    const frame = `./public/assets/catalog/frame/${t}/${r}.svg`;
 
     return { r, t, background, face, wm, frame };
   }

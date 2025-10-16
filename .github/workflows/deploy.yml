@@ -18,10 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Change le path selon ce que tu veux publier (ici la racine)
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: ./test_card
   deploy:
     needs: build
     runs-on: ubuntu-latest
